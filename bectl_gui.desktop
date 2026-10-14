@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=bectl GUI
+GenericName=Boot Environment Manager
+GenericName[pt_BR]=Gerenciador de Ambientes de Boot
+Comment=Qt6 graphical front-end for FreeBSD bectl(8) ZFS Boot Environments
+Comment[pt_BR]=Interface gráfica Qt6 para gerenciamento de Boot Environments ZFS no FreeBSD
+Exec=bectl_gui
+Icon=system-software-update
+Terminal=false
+Categories=System;Settings;Filesystem;
+Keywords=freebsd;zfs;boot;environment;bectl;snapshot;
+StartupNotify=true

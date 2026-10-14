@@ -1,0 +1,53 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-linux-qt6:
+    name: Build with Qt6 (Ubuntu)
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build clang qt6-base-dev qt6-tools-dev libgl1-mesa-dev
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_COMPILER=clang++
+
+    - name: Build with CMake
+      run: |
+        cmake --build build --verbose
+
+    - name: Test QMake build
+      run: |
+        mkdir -p build-qmake
+        cd build-qmake
+        qmake6 ../bectl_gui.pro
+        make -j$(nproc)
+
+  build-freebsd:
+    name: Build on FreeBSD (VM)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build on FreeBSD
+      uses: vmactions/freebsd-vm@v1
+      with:
+        usesh: true
+        prepare: |
+          pkg install -y cmake ninja qt6-base qt6-tools
+        run: |
+          cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build

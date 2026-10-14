@@ -1,0 +1,52 @@
+# Suppressions comuns Qt6 / FreeBSD (falsos positivos e ruido de bibliotecas)
+# Uso: valgrind --suppressions=qt6.supp ...
+
+{
+   Qt6_QObject_meta
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   obj:*/libQt6Core.so*
+}
+{
+   Qt6_Gui_reachable
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   obj:*/libQt6Gui.so*
+}
+{
+   Qt6_Widgets_reachable
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   obj:*/libQt6Widgets.so*
+}
+{
+   Fontconfig_leak
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   obj:*/libfontconfig.so*
+}
+{
+   Glib_reachable
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   obj:*/libglib-2.0.so*
+}
+{
+   X11_reachable
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   obj:*/libX11.so*
+}
+{
+   libc_dlopen
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:dlopen*
+   ...
+}
