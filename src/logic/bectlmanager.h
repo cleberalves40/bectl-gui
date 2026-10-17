@@ -38,8 +38,11 @@ struct DestroyManyResult {
 class BectlManager
 {
 public:
+    // bectlPath: executável usado no lugar do bectl(8) do PATH; o teste de
+    // integração aponta para um wrapper que executa "bectl -r <raiz>".
     explicit BectlManager(bool useQtSudo = true,
-                          const QString &qtSudoPath = QStringLiteral("qt-sudo"));
+                          const QString &qtSudoPath = QStringLiteral("qt-sudo"),
+                          const QString &bectlPath = QString());
 
     // --- Leitura ---
     QVector<BootEnvironment> listEnvironments(bool scriptFormat = true,

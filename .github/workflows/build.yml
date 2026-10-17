@@ -5,6 +5,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build-linux-qt6:
@@ -12,7 +13,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
+
+    - name: Check version consistency
+      run: |
+        cmake_ver=$(sed -n 's/^project(bectl_gui VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+        port_ver=$(sed -n 's/^DISTVERSION=[[:space:]]*//p' freebsd/Makefile)
+        pro_ver=$(grep 'BECTL_GUI_VERSION' bectl_gui.pro | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+        echo "CMakeLists.txt: $cmake_ver / freebsd/Makefile: $port_ver / bectl_gui.pro: $pro_ver"
+        test -n "$cmake_ver" && test "$cmake_ver" = "$port_ver" && test "$cmake_ver" = "$pro_ver"
+        grep -q "^## \[$cmake_ver\]" CHANGELOG.md
 
     - name: Install Dependencies
       run: |
@@ -23,7 +33,8 @@ jobs:
       run: |
         cmake -B build -S . -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_COMPILER=clang++ \
+          -DBECTL_GUI_BUILD_TESTS=ON
 
     - name: Build with CMake
       run: |
@@ -36,18 +47,30 @@ jobs:
         qmake6 ../bectl_gui.pro
         make -j$(nproc)
 
-  build-freebsd:
-    name: Build on FreeBSD (VM)
+  # Arquiteturas Tier 1 do FreeBSD (amd64 e aarch64) nas releases mais novas
+  # das séries suportadas. Cada job compila com o Clang do sistema e os
+  # pacotes Qt6 e executa tests/freebsd-e2e.sh contra o bectl(8) real
+  # (veja ci/freebsd-ci.sh e docs/ARCHITECTURES.md).
+  freebsd:
+    name: FreeBSD ${{ matrix.release }} / ${{ matrix.label }}
     runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { release: "14.5", arch: "",        label: "amd64" }
+          - { release: "14.5", arch: "aarch64", label: "aarch64" }
+          - { release: "15.1", arch: "",        label: "amd64" }
+          - { release: "15.1", arch: "aarch64", label: "aarch64" }
 
-    - name: Build on FreeBSD
+    steps:
+    - uses: actions/checkout@v5
+
+    # aarch64 roda emulado no runner x86_64, como a action recomenda.
+    - name: Build and test
       uses: vmactions/freebsd-vm@v1
       with:
-        usesh: true
-        prepare: |
-          pkg install -y cmake ninja qt6-base qt6-tools
-        run: |
-          cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build build
+        release: ${{ matrix.release }}
+        arch: ${{ matrix.arch }}
+        run: sh ci/freebsd-ci.sh

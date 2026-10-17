@@ -135,6 +135,26 @@ make -j$(sysctl -n hw.ncpu)
 ./bectl_gui
 ```
 
+### Testes
+
+Num FreeBSD, como root, o teste de integração roda contra o `bectl(8)` real num pool ZFS
+de rascunho, sem tocar nos boot environments do sistema:
+
+```bash
+cmake -B build -S . -G Ninja -DBECTL_GUI_BUILD_TESTS=ON
+cmake --build build
+sh tests/freebsd-e2e.sh build
+```
+
+---
+
+## 🖥️ Plataformas suportadas
+
+Homologado nas arquiteturas **Tier 1** do FreeBSD, **amd64** e **aarch64**, nas releases
+**14.5** e **15.1**. Cada combinação tem um job no CI que compila e executa o teste de
+integração. Os resultados e detalhes estão em [docs/ARCHITECTURES.md](docs/ARCHITECTURES.md),
+e o histórico de versões no [CHANGELOG.md](CHANGELOG.md).
+
 ---
 
 ## ⌨️ Atalhos de Teclado

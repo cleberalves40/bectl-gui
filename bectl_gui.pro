@@ -1,6 +1,8 @@
 QT += core gui widgets
 CONFIG += c++17
 
+DEFINES += BECTL_GUI_VERSION=\\\"0.1.1\\\"
+
 TARGET = bectl_gui
 TEMPLATE = app
 

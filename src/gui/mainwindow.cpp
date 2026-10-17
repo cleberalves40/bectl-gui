@@ -708,9 +708,10 @@ void MainWindow::onDestroy()
 void MainWindow::onAbout()
 {
     QMessageBox::about(this, I18n::tr("About bectl"),
-        QStringLiteral("<h3>%1</h3><p>%2</p><p>%3</p><p>%4</p><p>Qt6 · FreeBSD 15.1</p>")
+        QStringLiteral("<h3>%1 %5</h3><p>%2</p><p>%3</p><p>%4</p><p>Qt6 · FreeBSD 14 / 15</p>")
             .arg(I18n::tr("bectl — Boot Environment Manager"),
                  I18n::tr("Graphical manager for FreeBSD Boot Environments."),
                  I18n::tr("UI inspired by OctoPKG (main list + Information / Output / Help tabs)."),
-                 I18n::tr("Logic: bectl · privilege: qt-sudo")));
+                 I18n::tr("Logic: bectl · privilege: qt-sudo"),
+                 QApplication::applicationVersion()));
 }
