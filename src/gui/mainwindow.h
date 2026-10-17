@@ -14,17 +14,27 @@
 #include <QActionGroup>
 #include <QMenu>
 
+#include <functional>
+
 #include "bectlmanager.h"
 #include "i18n.h"
+
+class QThread;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    // bectlPath e useQtSudo vão para o BectlManager; o teste da interface os
+    // usa para rodar com um bectl falso.
+    explicit MainWindow(QWidget *parent = nullptr,
+                        const QString &bectlPath = QString(),
+                        bool useQtSudo = true);
+    ~MainWindow() override;
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void refreshList();
@@ -33,6 +43,9 @@ private slots:
     void onActivateTemp();
     void onRename();
     void onDestroy();
+    void onMount();
+    void onUnmount();
+    void onSnapshot();
     void onFilterChanged(const QString &text);
     void onSelectionChanged();
     void onAbout();
@@ -57,9 +70,16 @@ private:
     QStringList selectedNames() const;
     QString selectedSingle() const;
     void setBusy(bool busy);
+    void updateActions();
     void showBeInfo(const BootEnvironment &be);
+    const BootEnvironment *findBe(const QString &name) const;
+    void runAsync(const QString &status, const std::function<void()> &op,
+                  const std::function<void()> &onSuccess);
+    void reportError(const QString &message);
 
     BectlManager m_mgr;
+    QVector<BootEnvironment> m_list;   // última saída de "bectl list"
+    QThread *m_worker = nullptr;       // operação em andamento, se houver
     QString m_themeId = QStringLiteral("octopkg");
 
     QTableWidget *m_table = nullptr;
@@ -86,6 +106,9 @@ private:
     QAction *m_actActivateTemp = nullptr;
     QAction *m_actRename = nullptr;
     QAction *m_actDestroy = nullptr;
+    QAction *m_actMount = nullptr;
+    QAction *m_actUnmount = nullptr;
+    QAction *m_actSnapshot = nullptr;
     QAction *m_actQuit = nullptr;
     QAction *m_actFocusFilter = nullptr;
 };
