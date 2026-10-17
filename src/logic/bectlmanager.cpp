@@ -1,9 +1,46 @@
 #include "bectlmanager.h"
+#include "i18n.h"
 
 #include <QProcess>
 #include <QStandardPaths>
 #include <QRegularExpression>
 #include <stdexcept>
+
+namespace {
+
+[[noreturn]] void fail(const QString &msg)
+{
+    throw std::runtime_error(msg.toStdString());
+}
+
+// Mesmas regras do libbe (be_validate_name/zfs_name_valid): letras, dígitos e
+// "_-.:", sem espaços. Além disso, recusa "-" inicial: o nome vai ao bectl(8)
+// como argumento, e ele o interpretaria como opção.
+bool validComponent(const QString &s)
+{
+    static const QRegularExpression re(QStringLiteral("^[A-Za-z0-9_.:][A-Za-z0-9_.:-]*$"));
+    return s.size() <= 255 && s != QLatin1String(".") && s != QLatin1String("..")
+           && re.match(s).hasMatch();
+}
+
+void requireBeName(const QString &name)
+{
+    if (!validComponent(name))
+        fail(I18n::tr1("Invalid boot environment name: %1", name));
+}
+
+// "be" ou "be@snapshot".
+void requireBeOrSnapshot(const QString &name)
+{
+    const QStringList parts = name.split(QLatin1Char('@'));
+    if (parts.size() > 2 || !validComponent(parts.first())
+        || (parts.size() == 2 && !validComponent(parts.last())))
+        fail(I18n::tr1(parts.size() == 1 ? "Invalid boot environment name: %1"
+                                         : "Invalid snapshot name: %1",
+                       name));
+}
+
+} // namespace
 
 BectlManager::BectlManager(bool useQtSudo, const QString &qtSudoPath, const QString &bectlPath)
     : m_useQtSudo(useQtSudo)
@@ -25,11 +62,9 @@ BectlManager::RunResult BectlManager::run(const QStringList &args,
     if (privileged && m_useQtSudo) {
         QString sudo = QStandardPaths::findExecutable(m_qtSudoPath);
         if (sudo.isEmpty()) {
-            throw std::runtime_error(
-                QStringLiteral("'%1' não encontrado. Instale o pacote security/qt-sudo "
-                               "(pkg install qt-sudo).")
-                    .arg(m_qtSudoPath)
-                    .toStdString());
+            fail(I18n::tr1("'%1' not found. Install the security/qt-sudo package "
+                           "(pkg install qt-sudo).",
+                           m_qtSudoPath));
         }
         cmd << sudo;
     }
@@ -37,43 +72,30 @@ BectlManager::RunResult BectlManager::run(const QStringList &args,
     cmd << m_bectlPath;
     cmd << args;
 
-    if (cmd.isEmpty()) {
-        throw std::runtime_error("Lista de comando vazia");
-    }
-
     QProcess proc;
     // Separar canais evita misturar stdout/stderr e facilita o Valgrind
     proc.setProcessChannelMode(QProcess::SeparateChannels);
     proc.start(cmd.first(), cmd.mid(1));
 
-    if (!proc.waitForStarted(timeoutMs)) {
-        const QString err = proc.errorString();
-        throw std::runtime_error(
-            QStringLiteral("Falha ao iniciar '%1': %2")
-                .arg(cmd.join(QLatin1Char(' ')), err)
-                .toStdString());
-    }
+    if (!proc.waitForStarted(30000))
+        fail(I18n::tr2("Failed to start '%1': %2", cmd.join(QLatin1Char(' ')), proc.errorString()));
 
-    if (!proc.waitForFinished(timeoutMs)) {
+    // Comandos privilegiados não têm limite de tempo: a espera inclui a senha
+    // digitada no qt-sudo, e operações como destroy podem ser longas.
+    const int limit = privileged && m_useQtSudo ? -1 : timeoutMs;
+    if (!proc.waitForFinished(limit)) {
         proc.kill();
         proc.waitForFinished(5000);
-        throw std::runtime_error(
-            QStringLiteral("Comando excedeu o tempo limite (%1 ms): %2")
-                .arg(timeoutMs)
-                .arg(cmd.join(QLatin1Char(' ')))
-                .toStdString());
+        fail(I18n::tr2("Command timed out (%1 ms): %2", QString::number(timeoutMs),
+                       cmd.join(QLatin1Char(' '))));
     }
 
     RunResult r;
     r.stdoutData = QString::fromLocal8Bit(proc.readAllStandardOutput()).trimmed();
     r.stderrData = QString::fromLocal8Bit(proc.readAllStandardError()).trimmed();
     // Preferir exitCode; se o processo crashou, exitStatus indica
-    if (proc.exitStatus() == QProcess::CrashExit) {
-        throw std::runtime_error(
-            QStringLiteral("Processo terminou com crash: %1")
-                .arg(cmd.join(QLatin1Char(' ')))
-                .toStdString());
-    }
+    if (proc.exitStatus() == QProcess::CrashExit)
+        fail(I18n::tr1("Process crashed: %1", cmd.join(QLatin1Char(' '))));
     r.returnCode = proc.exitCode();
     return r;
 }
@@ -84,7 +106,7 @@ QString BectlManager::runOrRaise(const QStringList &args, bool privileged)
     if (r.returnCode != 0) {
         QString msg = r.stderrData.isEmpty() ? r.stdoutData : r.stderrData;
         if (msg.isEmpty())
-            msg = QStringLiteral("Comando falhou com código %1").arg(r.returnCode);
+            msg = I18n::tr1("Command failed with exit code %1", QString::number(r.returnCode));
         throw std::runtime_error(msg.toStdString());
     }
     return r.stdoutData;
@@ -155,6 +177,9 @@ std::optional<BootEnvironment> BectlManager::getEnvironment(const QString &name)
 
 QString BectlManager::create(const QString &name, const QString &source, bool recursive)
 {
+    requireBeName(name);
+    if (!source.isEmpty())
+        requireBeOrSnapshot(source);
     QStringList args{QStringLiteral("create")};
     if (recursive)
         args << QStringLiteral("-r");
@@ -167,7 +192,8 @@ QString BectlManager::create(const QString &name, const QString &source, bool re
 QString BectlManager::createSnapshot(const QString &name, bool recursive)
 {
     if (!name.contains(QLatin1Char('@')))
-        throw std::runtime_error("O nome do snapshot deve conter '@' (ex: default@antes-upgrade)");
+        fail(I18n::tr("Snapshot name must contain '@' (e.g. default@before-upgrade)"));
+    requireBeOrSnapshot(name);
 
     QStringList args{QStringLiteral("create")};
     if (recursive)
@@ -178,6 +204,7 @@ QString BectlManager::createSnapshot(const QString &name, bool recursive)
 
 QString BectlManager::activate(const QString &name, bool temporary)
 {
+    requireBeName(name);
     QStringList args{QStringLiteral("activate")};
     if (temporary)
         args << QStringLiteral("-t");
@@ -187,6 +214,7 @@ QString BectlManager::activate(const QString &name, bool temporary)
 
 QString BectlManager::destroy(const QString &name, bool force, bool origin)
 {
+    requireBeOrSnapshot(name);
     QStringList args{QStringLiteral("destroy")};
     if (force)
         args << QStringLiteral("-F");
@@ -219,7 +247,7 @@ DestroyManyResult BectlManager::destroyMany(const QStringList &names,
 
     for (const QString &name : names) {
         if (skipActive && !activeName.isEmpty() && name == activeName) {
-            result.errors << QStringLiteral("%1: não é possível destruir o BE ativo no momento").arg(name);
+            result.errors << I18n::tr1("%1: cannot destroy the currently active BE", name);
             continue;
         }
         try {
@@ -234,11 +262,16 @@ DestroyManyResult BectlManager::destroyMany(const QStringList &names,
 
 QString BectlManager::rename(const QString &oldName, const QString &newName)
 {
+    requireBeName(oldName);
+    requireBeName(newName);
     return runOrRaise({QStringLiteral("rename"), oldName, newName}, true);
 }
 
 QString BectlManager::mount(const QString &name, const QString &mountpoint)
 {
+    requireBeName(name);
+    if (!mountpoint.isEmpty() && !mountpoint.startsWith(QLatin1Char('/')))
+        fail(I18n::tr1("Mount point must be an absolute path: %1", mountpoint));
     QStringList args{QStringLiteral("mount"), name};
     if (!mountpoint.isEmpty())
         args << mountpoint;
@@ -247,6 +280,7 @@ QString BectlManager::mount(const QString &name, const QString &mountpoint)
 
 QString BectlManager::unmount(const QString &name, bool force)
 {
+    requireBeName(name);
     QStringList args{QStringLiteral("umount")};
     if (force)
         args << QStringLiteral("-f");
