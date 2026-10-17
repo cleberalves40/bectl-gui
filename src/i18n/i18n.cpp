@@ -98,6 +98,17 @@ void ensureInit()
         c.insert(QStringLiteral("Portuguese (Brazil)"), QStringLiteral("Português (Brasil)"));
         c.insert(QStringLiteral("Spanish (Spain)"), QStringLiteral("Espanhol (Espanha)"));
         c.insert(QStringLiteral("Help body"), QStringLiteral("<h3>bectl — Gerenciador de Boot Environments</h3><p>Interface inspirada no <b>OctoPKG</b> (lista + abas de detalhe).</p><ul><li><b>Atualizar</b> — bectl list -H</li><li><b>Criar</b> — novo BE (opcionalmente a partir de outro)</li><li><b>Ativar</b> — permanente ou temporário (-t)</li><li><b>Renomear / Destruir</b> — com confirmação; BE ativo protegido</li></ul><p>Operações privilegiadas usam <b>qt-sudo</b>.</p><p>Atalhos: F5 atualizar · Ctrl+Q sair</p>"));
+        // Mensagens do BectlManager
+        c.insert(QStringLiteral("'%1' not found. Install the security/qt-sudo package (pkg install qt-sudo)."), QStringLiteral("'%1' não encontrado. Instale o pacote security/qt-sudo (pkg install qt-sudo)."));
+        c.insert(QStringLiteral("Failed to start '%1': %2"), QStringLiteral("Falha ao iniciar '%1': %2"));
+        c.insert(QStringLiteral("Command timed out (%1 ms): %2"), QStringLiteral("Comando excedeu o tempo limite (%1 ms): %2"));
+        c.insert(QStringLiteral("Process crashed: %1"), QStringLiteral("Processo terminou com crash: %1"));
+        c.insert(QStringLiteral("Command failed with exit code %1"), QStringLiteral("Comando falhou com código %1"));
+        c.insert(QStringLiteral("Snapshot name must contain '@' (e.g. default@before-upgrade)"), QStringLiteral("O nome do snapshot deve conter '@' (ex: default@antes-upgrade)"));
+        c.insert(QStringLiteral("Invalid boot environment name: %1"), QStringLiteral("Nome de Boot Environment inválido: %1"));
+        c.insert(QStringLiteral("Invalid snapshot name: %1"), QStringLiteral("Nome de snapshot inválido: %1"));
+        c.insert(QStringLiteral("Mount point must be an absolute path: %1"), QStringLiteral("O ponto de montagem deve ser um caminho absoluto: %1"));
+        c.insert(QStringLiteral("%1: cannot destroy the currently active BE"), QStringLiteral("%1: não é possível destruir o BE ativo no momento"));
         g_cats.insert(QStringLiteral("pt_BR"), c);
     }
     {
@@ -185,6 +196,17 @@ void ensureInit()
         c.insert(QStringLiteral("Portuguese (Brazil)"), QStringLiteral("Portugués (Brasil)"));
         c.insert(QStringLiteral("Spanish (Spain)"), QStringLiteral("Español (España)"));
         c.insert(QStringLiteral("Help body"), QStringLiteral("<h3>bectl — Gestor de Boot Environments</h3><p>Interfaz inspirada en <b>OctoPKG</b> (lista + pestañas).</p><ul><li><b>Actualizar</b> — bectl list -H</li><li><b>Crear</b> — nuevo BE</li><li><b>Activar</b> — permanente o temporal (-t)</li><li><b>Renombrar / Destruir</b> — con confirmación; BE activo protegido</li></ul><p>Las operaciones privilegiadas usan <b>qt-sudo</b>.</p><p>Atajos: F5 actualizar · Ctrl+Q salir</p>"));
+        // Mensagens do BectlManager
+        c.insert(QStringLiteral("'%1' not found. Install the security/qt-sudo package (pkg install qt-sudo)."), QStringLiteral("'%1' no encontrado. Instale el paquete security/qt-sudo (pkg install qt-sudo)."));
+        c.insert(QStringLiteral("Failed to start '%1': %2"), QStringLiteral("No se pudo iniciar '%1': %2"));
+        c.insert(QStringLiteral("Command timed out (%1 ms): %2"), QStringLiteral("El comando excedió el tiempo límite (%1 ms): %2"));
+        c.insert(QStringLiteral("Process crashed: %1"), QStringLiteral("El proceso terminó abruptamente: %1"));
+        c.insert(QStringLiteral("Command failed with exit code %1"), QStringLiteral("El comando falló con código %1"));
+        c.insert(QStringLiteral("Snapshot name must contain '@' (e.g. default@before-upgrade)"), QStringLiteral("El nombre del snapshot debe contener '@' (ej: default@antes-actualizacion)"));
+        c.insert(QStringLiteral("Invalid boot environment name: %1"), QStringLiteral("Nombre de Boot Environment no válido: %1"));
+        c.insert(QStringLiteral("Invalid snapshot name: %1"), QStringLiteral("Nombre de snapshot no válido: %1"));
+        c.insert(QStringLiteral("Mount point must be an absolute path: %1"), QStringLiteral("El punto de montaje debe ser una ruta absoluta: %1"));
+        c.insert(QStringLiteral("%1: cannot destroy the currently active BE"), QStringLiteral("%1: no se puede destruir el BE activo en este momento"));
         g_cats.insert(QStringLiteral("es_ES"), c);
     }
 }

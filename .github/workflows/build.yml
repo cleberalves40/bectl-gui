@@ -40,6 +40,12 @@ jobs:
       run: |
         cmake --build build --verbose
 
+    # tst_validation roda aqui; tst_bectlmanager precisa do bectl(8) e é
+    # ignorado fora dos jobs FreeBSD.
+    - name: Run tests
+      run: |
+        ctest --test-dir build --output-on-failure
+
     - name: Test QMake build
       run: |
         mkdir -p build-qmake

@@ -17,6 +17,9 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 [ "$(id -u)" -eq 0 ] || fail "precisa ser executado como root"
 [ -x "$build/tst_bectlmanager" ] || fail "falta $build/tst_bectlmanager"
 
+step "tst_validation"
+"$build/tst_validation"
+
 pool=bectltest$$
 work=$(mktemp -d /var/tmp/bectl-e2e.XXXXXX)
 md=
