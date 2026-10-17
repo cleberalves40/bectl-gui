@@ -21,15 +21,20 @@ port=$ports/sysutils/bectl-gui
 
 pkg install -y git portlint qt-sudo >/dev/null
 
-step "árvore de ports (só o framework e as dependências de execução)"
+mk() { make -C "$port" PORTSDIR="$ports" DISTDIR="$distdir" BATCH=yes "$@"; }
+
+step "árvore de ports (só o framework e as dependências diretas do port)"
 rm -rf "$ports"
 git clone -q --depth 1 --filter=blob:none --sparse \
 	https://github.com/freebsd/freebsd-ports.git "$ports"
-git -C "$ports" sparse-checkout set Mk Templates Keywords security/qt-sudo
+git -C "$ports" sparse-checkout set Mk Templates Keywords
 mkdir -p "$port" "$distdir"
 cp freebsd/Makefile freebsd/pkg-descr "$port/"
-
-mk() { make -C "$port" PORTSDIR="$ports" DISTDIR="$distdir" BATCH=yes "$@"; }
+# Cada dependência é "arquivo-ou-pacote:origem[@flavor][:target]".
+origins=$(mk -V FETCH_DEPENDS -V EXTRACT_DEPENDS -V BUILD_DEPENDS -V LIB_DEPENDS \
+	-V RUN_DEPENDS -V PKG_DEPENDS | tr ' ' '\n' | sed -n 's/^[^:]*:\([^:@]*\).*/\1/p' | sort -u)
+echo $origins
+git -C "$ports" sparse-checkout add $origins
 
 step "distfile a partir do commit em teste"
 distfile=$(mk -V DISTFILES:C/:.*//)
@@ -42,7 +47,7 @@ cat "$port/distinfo"
 
 # O portlint confere, como faria antes de um commit na árvore oficial, que o
 # port está no git e sem diretório de trabalho.
-git -C "$ports" add sysutils/bectl-gui
+git -C "$ports" add --sparse sysutils/bectl-gui
 
 step "portlint"
 # -A: todos os testes; FATAL encerra com status diferente de zero. O

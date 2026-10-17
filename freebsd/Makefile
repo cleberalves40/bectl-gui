@@ -13,7 +13,7 @@ LICENSE_FILE=	${WRKSRC}/LICENSE
 RUN_DEPENDS=	qt-sudo:security/qt-sudo
 
 USES=		cmake compiler:c++17-lang qt:6
-USE_QT=		base tools:build
+USE_QT=		base
 USE_GITHUB=	yes
 GH_ACCOUNT=	cleberalves40
 

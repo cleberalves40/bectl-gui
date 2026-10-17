@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Qt6 (FreeBSD: pkg install qt6-base qt6-tools)
+# Qt6 (FreeBSD: pkg install qt6-base)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
 
 # Lógica de integração com o bectl(8) e tradução, compartilhadas pela GUI e
