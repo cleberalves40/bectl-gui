@@ -5,6 +5,31 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o projeto usa [versionamento semântico](https://semver.org/lang/pt-BR/),
 com tags no formato `vX.Y.Z`.
 
+## [0.2.0] - 2026-10-17
+
+### Adicionado
+- **Criar snapshot** (`Ctrl+Shift+S`): cria `be@nome`, opcionalmente recursivo.
+  Para clonar um snapshot, a origem em **Criar** agora aceita `be@snapshot`
+  digitado.
+- **Montar** (`Ctrl+M`) e **Desmontar** (`Ctrl+U`): monta um BE num diretório
+  escolhido ou num diretório temporário criado pelo `bectl`.
+- As ações acompanham a seleção: ativar, renomear e montar exigem um único BE;
+  desmontar só vale para um BE montado que não seja o BE em uso.
+- `tests/tst_mainwindow.cpp`: teste da interface com um `bectl` falso, que roda
+  em qualquer sistema.
+
+### Alterado
+- As operações rodam numa thread à parte: a janela continua respondendo
+  enquanto o `bectl` executa e o `qt-sudo` espera a senha. Enquanto isso, as
+  ações que chamam o `bectl`, inclusive pelos atalhos, ficam desativadas, e
+  fechar a janela pede para aguardar o fim da operação.
+- Filtro, seleção, troca de tema e de idioma usam a última listagem. Antes,
+  cada tecla digitada no filtro e cada clique na tabela executavam `bectl list`.
+
+### Corrigido
+- Em inglês, a aba **Ajuda** mostrava o texto "Help body" em vez do conteúdo.
+  A ajuda agora descreve as novas operações nos três idiomas.
+
 ## [0.1.2] - 2026-10-17
 
 ### Corrigido
@@ -52,6 +77,7 @@ com tags no formato `vX.Y.Z`.
 - Temas, tradução (en_US, pt_BR, es_ES), compilação por CMake e QMake, modelo
   de port do FreeBSD e CI no GitHub Actions (Ubuntu e FreeBSD amd64).
 
+[0.2.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/cleberalves40/bectl-gui/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/cleberalves40/bectl-gui/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/cleberalves40/bectl-gui/releases/tag/v0.1.0

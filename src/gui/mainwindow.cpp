@@ -1,8 +1,14 @@
 #include "mainwindow.h"
 #include "themes.h"
 #include "i18n.h"
+#include <QCloseEvent>
+#include <QFileDialog>
 #include <QKeyEvent>
+#include <QPushButton>
 #include <QShortcut>
+#include <QThread>
+
+#include <memory>
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -21,9 +27,9 @@
 #include <QKeySequence>
 #include <QSizePolicy>
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(QWidget *parent, const QString &bectlPath, bool useQtSudo)
     : QMainWindow(parent)
-    , m_mgr(true)
+    , m_mgr(useQtSudo, QStringLiteral("qt-sudo"), bectlPath)
 {
     setWindowTitle(QStringLiteral("bectl — Boot Environment Manager"));
     setMinimumSize(960, 600);
@@ -40,6 +46,23 @@ MainWindow::MainWindow(QWidget *parent)
     refreshList();
 }
 
+MainWindow::~MainWindow()
+{
+    // A operação em andamento usa m_mgr: espera antes de destruí-lo.
+    if (m_worker)
+        m_worker->wait();
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (m_worker) {
+        m_statusLabel->setText(I18n::tr("Wait for the current operation to finish."));
+        event->ignore();
+        return;
+    }
+    QMainWindow::closeEvent(event);
+}
+
 void MainWindow::applyTheme(const QString &id)
 {
     m_themeId = id.isEmpty() ? QStringLiteral("octopkg") : id;
@@ -48,10 +71,7 @@ void MainWindow::applyTheme(const QString &id)
     if (m_statusLabel)
         m_statusLabel->setText(I18n::tr("Theme: %1").arg(themeLabel(m_themeId)));
     /* recolor table rows */
-    try {
-        fillTable(m_mgr.listEnvironments());
-    } catch (...) {
-    }
+    fillTable(m_list);
 }
 
 void MainWindow::onThemeTriggered(QAction *act)
@@ -78,6 +98,13 @@ void MainWindow::setupMenus()
                                              QStringLiteral("Activate (&temporary)"), this, &MainWindow::onActivateTemp);
     m_actRename = m_actMenu->addAction(style()->standardIcon(QStyle::SP_FileDialogDetailedView),
                                        QStringLiteral("&Rename…"), this, &MainWindow::onRename);
+    m_actSnapshot = m_actMenu->addAction(style()->standardIcon(QStyle::SP_DialogSaveButton),
+                                         QStringLiteral("Create &snapshot…"), this, &MainWindow::onSnapshot);
+    m_actMenu->addSeparator();
+    m_actMount = m_actMenu->addAction(style()->standardIcon(QStyle::SP_DriveHDIcon),
+                                      QStringLiteral("&Mount…"), this, &MainWindow::onMount);
+    m_actUnmount = m_actMenu->addAction(style()->standardIcon(QStyle::SP_MediaStop),
+                                        QStringLiteral("&Unmount"), this, &MainWindow::onUnmount);
     m_actMenu->addSeparator();
     m_actDestroy = m_actMenu->addAction(style()->standardIcon(QStyle::SP_TrashIcon),
                                         QStringLiteral("&Destroy selected"), this, &MainWindow::onDestroy);
@@ -118,6 +145,9 @@ void MainWindow::setupMenus()
                 "Ctrl+Return     Activate\n"
                 "Ctrl+T          Activate temporary\n"
                 "F2              Rename\n"
+                "Ctrl+Shift+S    Create snapshot\n"
+                "Ctrl+M          Mount\n"
+                "Ctrl+U          Unmount\n"
                 "Delete          Destroy selected\n"
                 "Ctrl+F          Focus filter\n"
                 "Ctrl+1 / 2 / 3  Tabs\n"
@@ -132,10 +162,7 @@ void MainWindow::onLanguageTriggered(QAction *act)
     if (!act) return;
     I18n::setLocale(act->data().toString());
     retranslateUi();
-    try {
-        fillTable(m_mgr.listEnvironments());
-    } catch (...) {
-    }
+    fillTable(m_list);
 }
 
 void MainWindow::retranslateUi()
@@ -154,6 +181,9 @@ void MainWindow::retranslateUi()
     if (m_actActivateTemp) m_actActivateTemp->setText(I18n::tr("Activate (&temporary)"));
     if (m_actRename) m_actRename->setText(I18n::tr("&Rename…"));
     if (m_actDestroy) m_actDestroy->setText(I18n::tr("&Destroy selected"));
+    if (m_actSnapshot) m_actSnapshot->setText(I18n::tr("Create &snapshot…"));
+    if (m_actMount) m_actMount->setText(I18n::tr("&Mount…"));
+    if (m_actUnmount) m_actUnmount->setText(I18n::tr("&Unmount"));
     if (m_actAbout) m_actAbout->setText(I18n::tr("About bectl…"));
     if (m_actShortcuts) m_actShortcuts->setText(I18n::tr("Keyboard shortcuts"));
 
@@ -203,6 +233,20 @@ void MainWindow::setupShortcuts()
     m_actActivateTemp->setShortcut(QKeySequence(QStringLiteral("Ctrl+T")));
     m_actRename->setShortcut(QKeySequence(QStringLiteral("F2")));
     m_actDestroy->setShortcut(QKeySequence(QStringLiteral("Delete")));
+    m_actSnapshot->setShortcut(QKeySequence(QStringLiteral("Ctrl+Shift+S")));
+    m_actMount->setShortcut(QKeySequence(QStringLiteral("Ctrl+M")));
+    m_actUnmount->setShortcut(QKeySequence(QStringLiteral("Ctrl+U")));
+
+    // Nomes usados pelo teste da interface (tests/tst_mainwindow.cpp).
+    m_actRefresh->setObjectName(QStringLiteral("actRefresh"));
+    m_actCreate->setObjectName(QStringLiteral("actCreate"));
+    m_actActivate->setObjectName(QStringLiteral("actActivate"));
+    m_actActivateTemp->setObjectName(QStringLiteral("actActivateTemp"));
+    m_actRename->setObjectName(QStringLiteral("actRename"));
+    m_actDestroy->setObjectName(QStringLiteral("actDestroy"));
+    m_actSnapshot->setObjectName(QStringLiteral("actSnapshot"));
+    m_actMount->setObjectName(QStringLiteral("actMount"));
+    m_actUnmount->setObjectName(QStringLiteral("actUnmount"));
     m_actQuit->setShortcut(QKeySequence::Quit);
 
     m_actFocusFilter = new QAction(this);
@@ -263,6 +307,10 @@ void MainWindow::setupToolbar()
     m_toolbar->addAction(m_actActivate);
     m_toolbar->addAction(m_actActivateTemp);
     m_toolbar->addAction(m_actRename);
+    m_toolbar->addAction(m_actSnapshot);
+    m_toolbar->addSeparator();
+    m_toolbar->addAction(m_actMount);
+    m_toolbar->addAction(m_actUnmount);
     m_toolbar->addSeparator();
     m_toolbar->addAction(m_actDestroy);
 
@@ -271,6 +319,7 @@ void MainWindow::setupToolbar()
     m_toolbar->addWidget(spacer);
 
     m_filter = new QLineEdit;
+    m_filter->setObjectName(QStringLiteral("filter"));
     m_filter->setPlaceholderText(I18n::tr("Filter by name…"));
     m_filter->setClearButtonEnabled(true);
     m_filter->setMaximumWidth(280);
@@ -286,6 +335,7 @@ void MainWindow::setupCentral()
     layout->setSpacing(8);
 
     m_table = new QTableWidget(0, 6);
+    m_table->setObjectName(QStringLiteral("table"));
     m_table->setHorizontalHeaderLabels({
         QString(), I18n::tr("Boot Environment"), I18n::tr("Active"),
         I18n::tr("Mountpoint"), I18n::tr("Space"), I18n::tr("Created")
@@ -322,18 +372,7 @@ void MainWindow::setupCentral()
 
     auto *help = new QTextEdit;
     help->setReadOnly(true);
-    help->setHtml(QStringLiteral(
-        "<h3>bectl — Gerenciador de Boot Environments</h3>"
-        "<p>Interface inspirada no <b>OctoPKG</b> (lista + abas de detalhe).</p>"
-        "<ul>"
-        "<li><b>Atualizar</b> — bectl list -H</li>"
-        "<li><b>Criar</b> — novo BE (opcionalmente a partir de outro)</li>"
-        "<li><b>Ativar</b> — permanente ou temporário (-t)</li>"
-        "<li><b>Renomear / Destruir</b> — com confirmação; BE ativo protegido</li>"
-        "</ul>"
-        "<p>Operações privilegiadas usam <b>qt-sudo</b>.</p>"
-        "<p>Atalhos: F5 atualizar · Ctrl+Q sair</p>"
-    ));
+    help->setHtml(I18n::tr("Help body"));
     m_tabs->addTab(help, style()->standardIcon(QStyle::SP_DialogHelpButton),
                    I18n::tr("Help"));
 
@@ -351,6 +390,7 @@ void MainWindow::setupCentral()
 void MainWindow::setupStatus()
 {
     m_statusLabel = new QLabel(I18n::tr("Ready."));
+    m_statusLabel->setObjectName(QStringLiteral("status"));
     m_countLabel = new QLabel(I18n::tr("0 BE(s)"));
     statusBar()->addWidget(m_statusLabel, 1);
     statusBar()->addPermanentWidget(m_countLabel);
@@ -358,15 +398,75 @@ void MainWindow::setupStatus()
 
 void MainWindow::setBusy(bool busy)
 {
-    m_toolbar->setEnabled(!busy);
-    m_table->setEnabled(!busy);
-    m_filter->setEnabled(!busy);
-    if (busy)
-        QApplication::setOverrideCursor(Qt::WaitCursor);
-    else
+    // Toda ação que chama o bectl fica desativada, inclusive pelos atalhos, e
+    // também a troca de idioma, que altera o catálogo lido pela operação.
+    for (QAction *a : {m_actRefresh, m_actCreate, m_actActivate, m_actActivateTemp, m_actRename,
+                       m_actSnapshot, m_actMount, m_actUnmount, m_actDestroy})
+        a->setEnabled(!busy);
+    m_langMenu->setEnabled(!busy);
+    if (busy) {
+        QApplication::setOverrideCursor(Qt::BusyCursor);
+    } else {
         QApplication::restoreOverrideCursor();
+        updateActions();
+    }
 }
 
+// Habilita cada ação conforme a seleção atual.
+void MainWindow::updateActions()
+{
+    if (m_worker)
+        return;
+    const QStringList names = selectedNames();
+    const BootEnvironment *be = names.size() == 1 ? findBe(names.first()) : nullptr;
+    m_actActivate->setEnabled(be);
+    m_actActivateTemp->setEnabled(be);
+    m_actRename->setEnabled(be);
+    m_actMount->setEnabled(be && !be->isMounted());
+    // O BE em uso está montado em "/" e não pode ser desmontado.
+    m_actUnmount->setEnabled(be && be->isMounted() && !be->isActiveNow());
+    m_actDestroy->setEnabled(!names.isEmpty());
+}
+
+// Executa op numa thread à parte, para a interface continuar respondendo
+// enquanto o bectl roda e o qt-sudo espera a senha. Se op lançar exceção, o
+// erro é exibido; senão, onSuccess roda na thread da interface.
+void MainWindow::runAsync(const QString &status, const std::function<void()> &op,
+                          const std::function<void()> &onSuccess)
+{
+    if (m_worker)
+        return;
+    auto error = std::make_shared<QString>();
+    m_worker = QThread::create([op, error]() {
+        try {
+            op();
+        } catch (const std::exception &e) {
+            *error = QString::fromUtf8(e.what());
+        }
+    });
+    connect(m_worker, &QThread::finished, this, [this, error, onSuccess]() {
+        m_worker->deleteLater();
+        m_worker = nullptr;
+        setBusy(false);
+        if (!error->isEmpty()) {
+            reportError(*error);
+            return;
+        }
+        m_statusLabel->setText(I18n::tr("Ready."));
+        if (onSuccess)
+            onSuccess();
+    });
+    setBusy(true);
+    m_statusLabel->setText(status);
+    m_worker->start();
+}
+
+void MainWindow::reportError(const QString &message)
+{
+    m_statusLabel->setText(I18n::tr("Error"));
+    appendOutput(I18n::tr("ERROR: %1").arg(message));
+    QMessageBox::critical(this, I18n::tr("Error"), message);
+}
 void MainWindow::appendOutput(const QString &line)
 {
     const QString ts = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss"));
@@ -428,46 +528,38 @@ void MainWindow::fillTable(const QVector<BootEnvironment> &list)
 
 void MainWindow::refreshList()
 {
-    setBusy(true);
-    m_statusLabel->setText(I18n::tr("Listing Boot Environments…"));
-    QApplication::processEvents();
-    try {
-        auto list = m_mgr.listEnvironments();
-        fillTable(list);
-        m_statusLabel->setText(I18n::tr("Ready."));
-        appendOutput(I18n::tr("List updated (%1 BE(s)).").arg(list.size()));
-    } catch (const std::exception &e) {
-        m_statusLabel->setText(I18n::tr("Error listing."));
-        QMessageBox::critical(this, I18n::tr("Error"), QString::fromUtf8(e.what()));
-        appendOutput(I18n::tr("ERROR: %1").arg(QString::fromUtf8(e.what())));
-    }
-    setBusy(false);
+    auto list = std::make_shared<QVector<BootEnvironment>>();
+    runAsync(I18n::tr("Listing Boot Environments…"),
+             [this, list]() { *list = m_mgr.listEnvironments(); },
+             [this, list]() {
+                 m_list = *list;
+                 fillTable(m_list);
+                 appendOutput(I18n::tr("List updated (%1 BE(s)).").arg(m_list.size()));
+             });
 }
-
 void MainWindow::onFilterChanged(const QString &)
 {
-    try {
-        fillTable(m_mgr.listEnvironments());
-    } catch (...) {
-    }
+    fillTable(m_list);
 }
-
 void MainWindow::onSelectionChanged()
 {
+    updateActions();
     const QString name = selectedSingle();
-    if (name.isEmpty()) {
+    const BootEnvironment *be = name.isEmpty() ? nullptr : findBe(name);
+    if (be)
+        showBeInfo(*be);
+    else
         m_info->clear();
-        return;
-    }
-    try {
-        auto opt = m_mgr.getEnvironment(name);
-        if (opt)
-            showBeInfo(*opt);
-    } catch (...) {
-        m_info->setPlainText(name);
-    }
 }
 
+const BootEnvironment *MainWindow::findBe(const QString &name) const
+{
+    for (const auto &be : m_list) {
+        if (be.name == name)
+            return &be;
+    }
+    return nullptr;
+}
 void MainWindow::showBeInfo(const BootEnvironment &be)
 {
     QString okFg, warnFg;
@@ -522,13 +614,12 @@ void MainWindow::onCreate()
     auto *form = new QFormLayout(&dlg);
     auto *nameEdit = new QLineEdit;
     nameEdit->setPlaceholderText(QStringLiteral("ex: antes-upgrade"));
+    // Editável: aceita também um snapshot digitado, como "default@antes-upgrade".
     auto *srcCombo = new QComboBox;
+    srcCombo->setEditable(true);
     srcCombo->addItem(I18n::tr("(Current Boot Environment)"), QString());
-    try {
-        for (const auto &be : m_mgr.listEnvironments())
-            srcCombo->addItem(be.name, be.name);
-    } catch (...) {
-    }
+    for (const auto &be : m_list)
+        srcCombo->addItem(be.name, be.name);
     auto *rec = new QCheckBox(I18n::tr("Create recursively (-r)"));
     form->addRow(I18n::tr("Name:"), nameEdit);
     form->addRow(I18n::tr("Clone from:"), srcCombo);
@@ -545,27 +636,19 @@ void MainWindow::onCreate()
         QMessageBox::warning(this, I18n::tr("Name"), I18n::tr("Please enter a name."));
         return;
     }
-    const QString source = srcCombo->currentData().toString();
-    setBusy(true);
-    m_statusLabel->setText(I18n::tr("Creating… (qt-sudo may ask for a password)"));
+    const QString text = srcCombo->currentText().trimmed();
+    const QString source = text == srcCombo->itemText(0) ? QString() : text;
+    const bool recursive = rec->isChecked();
     appendOutput(QStringLiteral("bectl create … %1").arg(name));
-    QApplication::processEvents();
-    try {
-        if (source.isEmpty())
-            m_mgr.create(name, QString(), rec->isChecked());
-        else
-            m_mgr.create(name, source, rec->isChecked());
-        appendOutput(I18n::tr("OK: '%1' created.").arg(name));
-        QMessageBox::information(this, I18n::tr("Success"),
-                                 I18n::tr("Boot Environment '%1' created.").arg(name));
-        refreshList();
-    } catch (const std::exception &e) {
-        appendOutput(I18n::tr("ERROR: %1").arg(QString::fromUtf8(e.what())));
-        QMessageBox::critical(this, I18n::tr("Error"), QString::fromUtf8(e.what()));
-    }
-    setBusy(false);
+    runAsync(I18n::tr("Creating… (qt-sudo may ask for a password)"),
+             [this, name, source, recursive]() { m_mgr.create(name, source, recursive); },
+             [this, name]() {
+                 appendOutput(I18n::tr("OK: '%1' created.").arg(name));
+                 QMessageBox::information(this, I18n::tr("Success"),
+                                          I18n::tr("Boot Environment '%1' created.").arg(name));
+                 refreshList();
+             });
 }
-
 void MainWindow::onActivate()
 {
     const QString name = selectedSingle();
@@ -578,19 +661,14 @@ void MainWindow::onActivate()
                               I18n::tr("Activate '%1' permanently?").arg(name))
         != QMessageBox::Yes)
         return;
-    setBusy(true);
     appendOutput(QStringLiteral("bectl activate %1").arg(name));
-    try {
-        m_mgr.activate(name, false);
-        appendOutput(I18n::tr("OK: activated."));
-        refreshList();
-    } catch (const std::exception &e) {
-        appendOutput(I18n::tr("ERROR: %1").arg(QString::fromUtf8(e.what())));
-        QMessageBox::critical(this, I18n::tr("Error"), QString::fromUtf8(e.what()));
-    }
-    setBusy(false);
+    runAsync(I18n::tr("Activating… (qt-sudo may ask for a password)"),
+             [this, name]() { m_mgr.activate(name, false); },
+             [this]() {
+                 appendOutput(I18n::tr("OK: activated."));
+                 refreshList();
+             });
 }
-
 void MainWindow::onActivateTemp()
 {
     const QString name = selectedSingle();
@@ -603,19 +681,14 @@ void MainWindow::onActivateTemp()
                               I18n::tr("Activate '%1' temporarily?").arg(name))
         != QMessageBox::Yes)
         return;
-    setBusy(true);
     appendOutput(QStringLiteral("bectl activate -t %1").arg(name));
-    try {
-        m_mgr.activate(name, true);
-        appendOutput(I18n::tr("OK: activated (temporary)."));
-        refreshList();
-    } catch (const std::exception &e) {
-        appendOutput(I18n::tr("ERROR: %1").arg(QString::fromUtf8(e.what())));
-        QMessageBox::critical(this, I18n::tr("Error"), QString::fromUtf8(e.what()));
-    }
-    setBusy(false);
+    runAsync(I18n::tr("Activating… (qt-sudo may ask for a password)"),
+             [this, name]() { m_mgr.activate(name, true); },
+             [this]() {
+                 appendOutput(I18n::tr("OK: activated (temporary)."));
+                 refreshList();
+             });
 }
-
 void MainWindow::onRename()
 {
     const QString name = selectedSingle();
@@ -626,22 +699,18 @@ void MainWindow::onRename()
     }
     bool ok = false;
     const QString neu = QInputDialog::getText(this, I18n::tr("Rename"),
-                                              I18n::tr("New name:"), QLineEdit::Normal, name, &ok);
-    if (!ok || neu.trimmed().isEmpty() || neu.trimmed() == name)
+                                              I18n::tr("New name:"), QLineEdit::Normal, name, &ok)
+                            .trimmed();
+    if (!ok || neu.isEmpty() || neu == name)
         return;
-    setBusy(true);
-    appendOutput(QStringLiteral("bectl rename %1 %2").arg(name, neu.trimmed()));
-    try {
-        m_mgr.rename(name, neu.trimmed());
-        appendOutput(I18n::tr("OK: renamed."));
-        refreshList();
-    } catch (const std::exception &e) {
-        appendOutput(I18n::tr("ERROR: %1").arg(QString::fromUtf8(e.what())));
-        QMessageBox::critical(this, I18n::tr("Error"), QString::fromUtf8(e.what()));
-    }
-    setBusy(false);
+    appendOutput(QStringLiteral("bectl rename %1 %2").arg(name, neu));
+    runAsync(I18n::tr("Renaming… (qt-sudo may ask for a password)"),
+             [this, name, neu]() { m_mgr.rename(name, neu); },
+             [this]() {
+                 appendOutput(I18n::tr("OK: renamed."));
+                 refreshList();
+             });
 }
-
 void MainWindow::onDestroy()
 {
     QStringList names = selectedNames();
@@ -653,16 +722,12 @@ void MainWindow::onDestroy()
 
     QStringList toDestroy;
     QStringList blocked;
-    try {
-        for (const QString &n : names) {
-            auto opt = m_mgr.getEnvironment(n);
-            if (opt && opt->isActiveNow())
-                blocked << n;
-            else
-                toDestroy << n;
-        }
-    } catch (...) {
-        toDestroy = names;
+    for (const QString &n : names) {
+        const BootEnvironment *be = findBe(n);
+        if (be && be->isActiveNow())
+            blocked << n;
+        else
+            toDestroy << n;
     }
 
     if (!blocked.isEmpty()) {
@@ -682,29 +747,123 @@ void MainWindow::onDestroy()
         != QMessageBox::Yes)
         return;
 
-    setBusy(true);
     appendOutput(QStringLiteral("bectl destroy -F %1").arg(toDestroy.join(QLatin1Char(' '))));
-    try {
-        auto r = m_mgr.destroyMany(toDestroy, true, false, true);
-        QString report;
-        if (!r.ok.isEmpty())
-            report += I18n::tr("Destroyed (%1):\n• %2\n").arg(r.ok.size()).arg(r.ok.join(QStringLiteral("\n• ")));
-        if (!r.errors.isEmpty())
-            report += I18n::tr("Failures (%1):\n• %2").arg(r.errors.size()).arg(r.errors.join(QStringLiteral("\n• ")));
-        appendOutput(report.trimmed());
-        if (!r.errors.isEmpty())
-            QMessageBox::warning(this, I18n::tr("Result"), report);
-        else
-            QMessageBox::information(this, I18n::tr("Result"),
-                                     report.isEmpty() ? I18n::tr("Done.") : report);
-        refreshList();
-    } catch (const std::exception &e) {
-        appendOutput(I18n::tr("ERROR: %1").arg(QString::fromUtf8(e.what())));
-        QMessageBox::critical(this, I18n::tr("Error"), QString::fromUtf8(e.what()));
-    }
-    setBusy(false);
+    auto r = std::make_shared<DestroyManyResult>();
+    runAsync(I18n::tr("Destroying… (qt-sudo may ask for a password)"),
+             [this, toDestroy, r]() { *r = m_mgr.destroyMany(toDestroy, true, false, true); },
+             [this, r]() {
+                 QString report;
+                 if (!r->ok.isEmpty())
+                     report += I18n::tr("Destroyed (%1):\n• %2\n").arg(r->ok.size()).arg(r->ok.join(QStringLiteral("\n• ")));
+                 if (!r->errors.isEmpty())
+                     report += I18n::tr("Failures (%1):\n• %2").arg(r->errors.size()).arg(r->errors.join(QStringLiteral("\n• ")));
+                 appendOutput(report.trimmed());
+                 if (!r->errors.isEmpty())
+                     QMessageBox::warning(this, I18n::tr("Result"), report);
+                 else
+                     QMessageBox::information(this, I18n::tr("Result"),
+                                              report.isEmpty() ? I18n::tr("Done.") : report);
+                 refreshList();
+             });
 }
 
+void MainWindow::onMount()
+{
+    const QString name = selectedSingle();
+    if (name.isEmpty()) {
+        QMessageBox::information(this, I18n::tr("Selection"),
+                                 I18n::tr("Select exactly one Boot Environment."));
+        return;
+    }
+    QDialog dlg(this);
+    dlg.setWindowTitle(I18n::tr("Mount Boot Environment"));
+    auto *form = new QFormLayout(&dlg);
+    auto *dirEdit = new QLineEdit;
+    auto *browse = new QPushButton(I18n::tr("Browse…"));
+    connect(browse, &QPushButton::clicked, &dlg, [&dlg, dirEdit]() {
+        const QString dir = QFileDialog::getExistingDirectory(&dlg, I18n::tr("Mount point:"));
+        if (!dir.isEmpty())
+            dirEdit->setText(dir);
+    });
+    auto *row = new QHBoxLayout;
+    row->addWidget(dirEdit);
+    row->addWidget(browse);
+    form->addRow(I18n::tr("Mount point:"), row);
+    form->addRow(QString(), new QLabel(I18n::tr("Leave empty to let bectl create a temporary directory.")));
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    form->addRow(buttons);
+    connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+    if (dlg.exec() != QDialog::Accepted)
+        return;
+
+    const QString dir = dirEdit->text().trimmed();
+    appendOutput(QStringLiteral("bectl mount %1 %2").arg(name, dir).trimmed());
+    auto out = std::make_shared<QString>();
+    runAsync(I18n::tr("Mounting… (qt-sudo may ask for a password)"),
+             [this, name, dir, out]() { *out = m_mgr.mount(name, dir); },
+             [this, name, out]() {
+                 if (!out->isEmpty())
+                     appendOutput(*out);
+                 appendOutput(I18n::tr("OK: '%1' mounted.").arg(name));
+                 refreshList();
+             });
+}
+
+void MainWindow::onUnmount()
+{
+    const QString name = selectedSingle();
+    if (name.isEmpty()) {
+        QMessageBox::information(this, I18n::tr("Selection"),
+                                 I18n::tr("Select exactly one Boot Environment."));
+        return;
+    }
+    appendOutput(QStringLiteral("bectl umount %1").arg(name));
+    runAsync(I18n::tr("Unmounting… (qt-sudo may ask for a password)"),
+             [this, name]() { m_mgr.unmount(name); },
+             [this, name]() {
+                 appendOutput(I18n::tr("OK: '%1' unmounted.").arg(name));
+                 refreshList();
+             });
+}
+
+void MainWindow::onSnapshot()
+{
+    QDialog dlg(this);
+    dlg.setWindowTitle(I18n::tr("Create snapshot"));
+    auto *form = new QFormLayout(&dlg);
+    auto *beCombo = new QComboBox;
+    for (const auto &be : m_list)
+        beCombo->addItem(be.name);
+    beCombo->setCurrentText(selectedSingle());
+    auto *snapEdit = new QLineEdit;
+    snapEdit->setPlaceholderText(QStringLiteral("ex: antes-upgrade"));
+    auto *rec = new QCheckBox(I18n::tr("Create recursively (-r)"));
+    form->addRow(I18n::tr("Boot Environment:"), beCombo);
+    form->addRow(I18n::tr("Snapshot name:"), snapEdit);
+    form->addRow(QString(), rec);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    form->addRow(buttons);
+    connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+    if (dlg.exec() != QDialog::Accepted)
+        return;
+
+    const QString snap = snapEdit->text().trimmed();
+    if (beCombo->currentText().isEmpty() || snap.isEmpty()) {
+        QMessageBox::warning(this, I18n::tr("Name"), I18n::tr("Please enter a name."));
+        return;
+    }
+    const QString full = beCombo->currentText() + QLatin1Char('@') + snap;
+    const bool recursive = rec->isChecked();
+    appendOutput(QStringLiteral("bectl create %1%2").arg(recursive ? QStringLiteral("-r ") : QString(), full));
+    runAsync(I18n::tr("Creating snapshot… (qt-sudo may ask for a password)"),
+             [this, full, recursive]() { m_mgr.createSnapshot(full, recursive); },
+             [this, full]() {
+                 appendOutput(I18n::tr("OK: snapshot '%1' created. To clone it, use Create with '%1' as the source.")
+                                  .arg(full));
+             });
+}
 void MainWindow::onAbout()
 {
     QMessageBox::about(this, I18n::tr("About bectl"),

@@ -20,6 +20,9 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 step "tst_validation"
 "$build/tst_validation"
 
+step "tst_mainwindow"
+"$build/tst_mainwindow"
+
 pool=bectltest$$
 work=$(mktemp -d /var/tmp/bectl-e2e.XXXXXX)
 md=

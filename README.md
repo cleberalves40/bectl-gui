@@ -70,6 +70,9 @@ qt-sudo bectl destroy -F nome-do-be
 - **Criação flexível**: Cria novos BEs com suporte a origem customizada e recursividade (`-r`).
 - **Ativação**: Suporte à ativação padrão ou temporária para o próximo boot (`-t`).
 - **Renomeação**: Renomeia BEs existentes com validação prévia.
+- **Snapshots**: Cria snapshots (`be@nome`) e clona BEs a partir deles.
+- **Montagem**: Monta um BE num diretório (ou num diretório temporário criado pelo `bectl`) para inspecionar seus arquivos, e desmonta.
+- **Interface responsiva**: As operações rodam em segundo plano; a janela continua respondendo enquanto o `bectl` executa e o `qt-sudo` pede a senha.
 - **Destruição em lote**: Selecione múltiplos BEs com `Ctrl+Clique` ou `Shift+Clique`.
 - **Proteção ativa**: Impede acidentes bloqueando a exclusão do Boot Environment ativo no momento.
 - **Multilíngue**: Suporte a Inglês, Português (Brasil) e Espanhol com detecção automática do sistema ou seleção manual.
@@ -166,6 +169,9 @@ e o histórico de versões no [CHANGELOG.md](CHANGELOG.md).
 | <kbd>Ctrl+Enter</kbd> | Ativar BE selecionado |
 | <kbd>Ctrl+T</kbd> | Ativar temporariamente (próximo boot) |
 | <kbd>F2</kbd> | Renomear BE |
+| <kbd>Ctrl+Shift+S</kbd> | Criar snapshot |
+| <kbd>Ctrl+M</kbd> | Montar BE selecionado |
+| <kbd>Ctrl+U</kbd> | Desmontar BE selecionado |
 | <kbd>Delete</kbd> | Destruir BE(s) selecionado(s) |
 | <kbd>Ctrl+F</kbd> | Focar no campo de busca/filtro |
 | <kbd>Ctrl+Shift+T</kbd> | Alternar para o próximo tema |
