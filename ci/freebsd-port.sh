@@ -21,11 +21,11 @@ port=$ports/sysutils/bectl-gui
 
 pkg install -y git portlint qt-sudo >/dev/null
 
-step "árvore de ports (só Mk, Templates e Keywords)"
+step "árvore de ports (só o framework e as dependências de execução)"
 rm -rf "$ports"
 git clone -q --depth 1 --filter=blob:none --sparse \
 	https://github.com/freebsd/freebsd-ports.git "$ports"
-git -C "$ports" sparse-checkout set Mk Templates Keywords
+git -C "$ports" sparse-checkout set Mk Templates Keywords security/qt-sudo
 mkdir -p "$port" "$distdir"
 cp freebsd/Makefile freebsd/pkg-descr "$port/"
 
@@ -37,8 +37,12 @@ prefix=$(basename "$(mk -V WRKSRC)")
 echo "$distfile ($prefix/)"
 git -c safe.directory="$src" -C "$src" archive --format=tar.gz \
 	--prefix="$prefix/" -o "$distdir/$distfile" HEAD
-mk makesum
+mk makesum clean
 cat "$port/distinfo"
+
+# O portlint confere, como faria antes de um commit na árvore oficial, que o
+# port está no git e sem diretório de trabalho.
+git -C "$ports" add sysutils/bectl-gui
 
 step "portlint"
 # -A: todos os testes; FATAL encerra com status diferente de zero. O
