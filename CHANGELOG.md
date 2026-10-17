@@ -5,6 +5,11 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o projeto usa [versionamento semântico](https://semver.org/lang/pt-BR/),
 com tags no formato `vX.Y.Z`.
 
+## [0.2.1] - 2026-10-17
+
+### Adicionado
+- Validação do port com o framework de ports nos quatro jobs FreeBSD Tier 1.
+
 ## [0.2.0] - 2026-10-17
 
 ### Adicionado
