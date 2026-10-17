@@ -41,8 +41,9 @@ mk makesum
 cat "$port/distinfo"
 
 step "portlint"
-# -A: todos os testes; FATAL encerra com status diferente de zero.
-portlint -A "$port"
+# -A: todos os testes; FATAL encerra com status diferente de zero. O
+# portlint lê a árvore de ports do ambiente, não do make.
+PORTSDIR=$ports portlint -A "$port"
 
 step "build, stage-qa e check-plist"
 mk stage stage-qa check-plist
