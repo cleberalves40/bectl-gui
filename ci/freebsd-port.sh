@@ -17,18 +17,23 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 src=$(pwd)
 ports=/var/tmp/ports
 distdir=/var/tmp/distfiles
+packages=/var/tmp/packages
 port=$ports/sysutils/bectl-gui
 
 pkg install -y git portlint qt-sudo >/dev/null
 
-mk() { make -C "$port" PORTSDIR="$ports" DISTDIR="$distdir" BATCH=yes "$@"; }
+# DEVELOPER=yes faz os erros do stage-qa reprovarem o build.
+mk() {
+	make -C "$port" PORTSDIR="$ports" DISTDIR="$distdir" PACKAGES="$packages" \
+		BATCH=yes DEVELOPER=yes "$@"
+}
 
 step "árvore de ports (só o framework e as dependências diretas do port)"
 rm -rf "$ports"
 git clone -q --depth 1 --filter=blob:none --sparse \
 	https://github.com/freebsd/freebsd-ports.git "$ports"
 git -C "$ports" sparse-checkout set Mk Templates Keywords
-mkdir -p "$port" "$distdir"
+mkdir -p "$port" "$distdir" "$packages"
 cp freebsd/Makefile freebsd/pkg-descr "$port/"
 # Cada dependência é "arquivo-ou-pacote:origem[@flavor][:target]".
 origins=$(mk -V FETCH_DEPENDS -V EXTRACT_DEPENDS -V BUILD_DEPENDS -V LIB_DEPENDS \
