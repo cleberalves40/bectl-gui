@@ -9,10 +9,13 @@ com tags no formato `vX.Y.Z`.
 
 ### Adicionado
 - Homologação nas arquiteturas Tier 1 do FreeBSD (amd64 e aarch64), nas
-  releases 14.5 e 15.1, com um job de CI para cada combinação.
+  releases 14.5 e 15.1, com um job de CI para cada combinação. As quatro
+  compilam sem warnings e passam no teste de integração, sem nenhum ajuste de
+  código ou de flags.
 - `tests/tst_bectlmanager.cpp` e `tests/freebsd-e2e.sh`: teste de integração do
   `BectlManager` contra o `bectl(8)` real, num pool ZFS de rascunho, mais um
   teste de inicialização da GUI.
+- `docs/ARCHITECTURES.md`: resultados por arquitetura e release.
 
 ### Corrigido
 - A versão do projeto passa a ter uma fonte única (`project(... VERSION ...)` no
