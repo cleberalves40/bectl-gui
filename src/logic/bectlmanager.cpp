@@ -5,11 +5,13 @@
 #include <QRegularExpression>
 #include <stdexcept>
 
-BectlManager::BectlManager(bool useQtSudo, const QString &qtSudoPath)
+BectlManager::BectlManager(bool useQtSudo, const QString &qtSudoPath, const QString &bectlPath)
     : m_useQtSudo(useQtSudo)
     , m_qtSudoPath(qtSudoPath)
+    , m_bectlPath(bectlPath)
 {
-    m_bectlPath = QStandardPaths::findExecutable(QStringLiteral("bectl"));
+    if (m_bectlPath.isEmpty())
+        m_bectlPath = QStandardPaths::findExecutable(QStringLiteral("bectl"));
     if (m_bectlPath.isEmpty())
         m_bectlPath = QStringLiteral("/sbin/bectl");
 }
