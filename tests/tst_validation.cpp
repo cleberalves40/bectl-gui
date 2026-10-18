@@ -191,6 +191,35 @@ private slots:
         QCOMPARE(snaps[1].name, QStringLiteral("default@2026-10-10-08:00:00-0"));
     }
 
+    void convertsSizes_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<qint64>("bytes");
+        QTest::newRow("bytes") << QStringLiteral("512B") << qint64(512);
+        QTest::newRow("sem unidade") << QStringLiteral("0") << qint64(0);
+        QTest::newRow("K") << QStringLiteral("24K") << qint64(24 * 1024);
+        QTest::newRow("M decimal") << QStringLiteral("1.69M") << qint64(1.69 * 1024 * 1024);
+        QTest::newRow("G") << QStringLiteral("4.19G") << qint64(4.19 * 1024 * 1024 * 1024);
+        QTest::newRow("T") << QStringLiteral("2T") << qint64(2) * 1024 * 1024 * 1024 * 1024;
+        QTest::newRow("hífen") << QStringLiteral("-") << qint64(-1);
+        QTest::newRow("vazio") << QString() << qint64(-1);
+        QTest::newRow("lixo") << QStringLiteral("12X") << qint64(-1);
+    }
+
+    void convertsSizes()
+    {
+        QFETCH(QString, text);
+        QFETCH(qint64, bytes);
+        QCOMPARE(bectlSizeToBytes(text), bytes);
+    }
+
+    void sizesOrderNumerically()
+    {
+        // Como texto, "1.2G" < "10M" < "5M"; em bytes, a ordem é a inversa.
+        QVERIFY(bectlSizeToBytes(QStringLiteral("5M")) < bectlSizeToBytes(QStringLiteral("10M")));
+        QVERIFY(bectlSizeToBytes(QStringLiteral("10M")) < bectlSizeToBytes(QStringLiteral("1.2G")));
+    }
+
     void missingQtSudoIsReported()
     {
         BectlManager mgr(true, QStringLiteral("qt-sudo-que-nao-existe"), fakeBectl(0));

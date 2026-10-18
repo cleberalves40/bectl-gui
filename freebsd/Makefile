@@ -1,6 +1,6 @@
 PORTNAME=	bectl-gui
 DISTVERSIONPREFIX=	v
-DISTVERSION=	1.1.2
+DISTVERSION=	1.2.0
 CATEGORIES=	sysutils
 
 MAINTAINER=	cleber@bsd.com.br
