@@ -1,0 +1,50 @@
+name: FreeBSD 16-CURRENT
+
+# Homologação da versão congelada (tag v1.2.0) no FreeBSD 16.0-CURRENT, nas
+# arquiteturas Tier 1. Nenhuma action oferece o 16-CURRENT; ci/freebsd16-vm.sh
+# usa a imagem oficial de snapshot e roda os mesmos testes dos jobs 14.5/15.1.
+on:
+  push:
+    branches: [ "validate-freebsd16" ]
+  workflow_dispatch:
+
+env:
+  TAG: v1.2.0
+
+jobs:
+  freebsd16:
+    name: FreeBSD 16.0-CURRENT / ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [ amd64, aarch64 ]
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Enable KVM
+      if: matrix.arch == 'amd64'
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+          | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - name: Install QEMU
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y qemu-system-x86 qemu-system-arm qemu-efi-aarch64 qemu-utils genisoimage netcat-openbsd
+
+    - name: Build and test ${{ env.TAG }} on FreeBSD 16.0-CURRENT/${{ matrix.arch }}
+      run: bash ci/freebsd16-vm.sh ${{ matrix.arch }} ${{ env.TAG }}
+
+    - name: Upload console log
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: console-${{ matrix.arch }}
+        path: ${{ runner.temp }}/fbsd16-${{ matrix.arch }}/*.log
