@@ -13,6 +13,7 @@
 #include <QAction>
 #include <QActionGroup>
 #include <QMenu>
+#include <QPalette>
 
 #include <functional>
 
@@ -31,6 +32,9 @@ public:
                         const QString &bectlPath = QString(),
                         bool useQtSudo = true);
     ~MainWindow() override;
+
+    // Aplica e salva tema e idioma ("system" = os do ambiente gráfico).
+    void applyPreferences(const QString &theme, const QString &language);
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
@@ -52,8 +56,7 @@ private slots:
     void onFilterChanged(const QString &text);
     void onSelectionChanged();
     void onAbout();
-    void onThemeTriggered(QAction *act);
-    void onLanguageTriggered(QAction *act);
+    void onPreferences();
     void retranslateUi();
     void focusFilter();
     void showTabInfo();
@@ -69,6 +72,7 @@ private:
     void setupStatus();
     void setupShortcuts();
     void applyTheme(const QString &id);
+    void applyLanguage(const QString &language);
     void fillTable(const QVector<BootEnvironment> &list);
     void fillSnapshots();
     QString selectedSnapshot() const;
@@ -86,7 +90,10 @@ private:
     QVector<BootEnvironment> m_list;   // última saída de "bectl list"
     QVector<BeSnapshot> m_snapshots;   // última saída de "bectl list -s"
     QThread *m_worker = nullptr;       // operação em andamento, se houver
-    QString m_themeId = QStringLiteral("octopkg");
+    QString m_themeId = QStringLiteral("system");
+    QString m_language = QStringLiteral("system");
+    QString m_systemStyle;     // estilo do ambiente gráfico, guardado ao iniciar
+    QPalette m_systemPalette;  // idem, para restaurá-lo ao voltar a "system"
 
     QTableWidget *m_table = nullptr;
     QLineEdit *m_filter = nullptr;
@@ -98,12 +105,9 @@ private:
     QTableWidget *m_snapTable = nullptr;
     QTabWidget *m_tabs = nullptr;
     QToolBar *m_toolbar = nullptr;
-    QActionGroup *m_themeGroup = nullptr;
-    QActionGroup *m_langGroup = nullptr;
     QMenu *m_fileMenu = nullptr;
     QMenu *m_actMenu = nullptr;
-    QMenu *m_themeMenu = nullptr;
-    QMenu *m_langMenu = nullptr;
+    QMenu *m_editMenu = nullptr;
     QMenu *m_helpMenu = nullptr;
     QAction *m_actShortcuts = nullptr;
     QAction *m_actAbout = nullptr;
@@ -121,6 +125,7 @@ private:
     QAction *m_actDestroySnapshot = nullptr;
     QAction *m_actQuit = nullptr;
     QAction *m_actFocusFilter = nullptr;
+    QAction *m_actPreferences = nullptr;
 };
 
 #endif

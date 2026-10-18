@@ -5,7 +5,24 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o projeto usa [versionamento semântico](https://semver.org/lang/pt-BR/),
 com tags no formato `vX.Y.Z`.
 
-## [Não lançado]
+## [1.1.0] - 2026-10-18
+
+### Adicionado
+- **Editar › Preferências…** (`Ctrl+,`): janela com listas suspensas de
+  **Tema** e **Idioma**. As escolhas são salvas (`QSettings`) e valem nas
+  próximas execuções; antes, tema e idioma voltavam ao padrão a cada abertura.
+- Tema **Sistema**, o novo padrão: sem folha de estilo própria, a interface
+  segue o estilo e a paleta que o ambiente gráfico define para o Qt6 (por
+  exemplo, um Catppuccin Frappé configurado no qt6ct). Os temas embutidos
+  continuam disponíveis nas Preferências, e voltar a **Sistema** restaura o
+  estilo do ambiente.
+- Idioma **Padrão do sistema**, que segue o idioma do ambiente, como antes.
+
+### Alterado
+- Os menus **Tema** e **Idioma** saem da barra de menus e passam para
+  **Editar › Preferências**. `Ctrl+Shift+T` continua alternando os temas e
+  agora também salva a escolha.
+- Sem preferência salva, o tema inicial é **Sistema**, no lugar de OctoPKG.
 
 ### Removido
 - `image.png`: captura de tela da v0.1.0, desatualizada; será substituída por
@@ -142,7 +159,7 @@ snapshots e port validado. O detalhamento está nas versões abaixo.
 - Temas, tradução (en_US, pt_BR, es_ES), compilação por CMake e QMake, modelo
   de port do FreeBSD e CI no GitHub Actions (Ubuntu e FreeBSD amd64).
 
-[Não lançado]: https://github.com/cleberalves40/bectl-gui/compare/v1.0.0...HEAD
+[1.1.0]: https://github.com/cleberalves40/bectl-gui/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/cleberalves40/bectl-gui/compare/v0.2.0...v0.2.1

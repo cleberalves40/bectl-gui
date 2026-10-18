@@ -45,6 +45,8 @@ jobs:
     - name: Run tests
       run: |
         ctest --test-dir build --output-on-failure
+        # O tema "Sistema" precisa restaurar um estilo que não seja o Fusion.
+        QT_STYLE_OVERRIDE=windows build/tst_mainwindow
 
     # Os mesmos testes com AddressSanitizer e UBSan: erros de memória,
     # vazamentos e comportamento indefinido reprovam o job.

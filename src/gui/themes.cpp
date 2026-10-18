@@ -1,7 +1,9 @@
 #include "themes.h"
+#include "i18n.h"
 #include <QMap>
 
 static const char *kThemeIds[] = {
+    "system",
     "octopkg",
     "frappe",
     "latte",
@@ -28,6 +30,7 @@ QStringList themeIds()
 
 QString themeLabel(const QString &id)
 {
+    if (id == QLatin1String("system")) return I18n::tr("System (desktop Qt6 theme)");
     if (id == QLatin1String("octopkg")) return QStringLiteral("OctoPKG (claro)");
     if (id == QLatin1String("frappe")) return QStringLiteral("Catppuccin Frappé");
     if (id == QLatin1String("latte")) return QStringLiteral("Catppuccin Latte");
@@ -45,9 +48,16 @@ QString themeLabel(const QString &id)
     return id;
 }
 
-void themeRowColors(const QString &id, QString *activeFg, QString *rebootFg)
+void themeRowColors(const QString &id, QString *activeFg, QString *rebootFg,
+                    bool darkBackground)
 {
     if (!activeFg || !rebootFg) return;
+    if (id == QLatin1String("system")) {
+        // Tons legíveis tanto sobre fundo claro quanto sobre fundo escuro.
+        *activeFg = QLatin1String(darkBackground ? "#a6d189" : "#2e7d32");
+        *rebootFg = QLatin1String(darkBackground ? "#ef9f76" : "#e65100");
+        return;
+    }
     if (id == QLatin1String("octopkg")) { *activeFg = QStringLiteral("#2e7d32"); *rebootFg = QStringLiteral("#e65100"); return; }
     if (id == QLatin1String("frappe")) { *activeFg = QStringLiteral("#a6d189"); *rebootFg = QStringLiteral("#ef9f76"); return; }
     if (id == QLatin1String("latte")) { *activeFg = QStringLiteral("#40a02b"); *rebootFg = QStringLiteral("#fe640b"); return; }
@@ -67,6 +77,8 @@ void themeRowColors(const QString &id, QString *activeFg, QString *rebootFg)
 
 QString themeStyleSheet(const QString &id)
 {
+    if (id == QLatin1String("system"))
+        return QString();
     if (id == QLatin1String("octopkg")) {
         return QString(R"QSS(QMainWindow, QDialog { background: #f5f6f8; color: #1a1d23; }
 QMenuBar { background: #eef0f3; color: #1a1d23; }

@@ -153,6 +153,14 @@ void ensureInit()
         c.insert(QStringLiteral("Snapshots tab"), QStringLiteral("Aba Snapshots"));
         c.insert(QStringLiteral("Next theme"), QStringLiteral("Próximo tema"));
         c.insert(QStringLiteral("Quit"), QStringLiteral("Sair"));
+        // v1.1.0: Editar › Preferências
+        c.insert(QStringLiteral("&Edit"), QStringLiteral("&Editar"));
+        c.insert(QStringLiteral("&Preferences…"), QStringLiteral("&Preferências…"));
+        c.insert(QStringLiteral("Preferences"), QStringLiteral("Preferências"));
+        c.insert(QStringLiteral("Theme:"), QStringLiteral("Tema:"));
+        c.insert(QStringLiteral("Language:"), QStringLiteral("Idioma:"));
+        c.insert(QStringLiteral("System default"), QStringLiteral("Padrão do sistema"));
+        c.insert(QStringLiteral("System (desktop Qt6 theme)"), QStringLiteral("Sistema (tema Qt6 do ambiente gráfico)"));
         g_cats.insert(QStringLiteral("pt_BR"), c);
     }
     {
@@ -301,6 +309,14 @@ void ensureInit()
         c.insert(QStringLiteral("Snapshots tab"), QStringLiteral("Pestaña Snapshots"));
         c.insert(QStringLiteral("Next theme"), QStringLiteral("Siguiente tema"));
         c.insert(QStringLiteral("Quit"), QStringLiteral("Salir"));
+        // v1.1.0: Editar › Preferências
+        c.insert(QStringLiteral("&Edit"), QStringLiteral("&Editar"));
+        c.insert(QStringLiteral("&Preferences…"), QStringLiteral("&Preferencias…"));
+        c.insert(QStringLiteral("Preferences"), QStringLiteral("Preferencias"));
+        c.insert(QStringLiteral("Theme:"), QStringLiteral("Tema:"));
+        c.insert(QStringLiteral("Language:"), QStringLiteral("Idioma:"));
+        c.insert(QStringLiteral("System default"), QStringLiteral("Predeterminado del sistema"));
+        c.insert(QStringLiteral("System (desktop Qt6 theme)"), QStringLiteral("Sistema (tema Qt6 del entorno gráfico)"));
         g_cats.insert(QStringLiteral("es_ES"), c);
     }
 }
