@@ -5,6 +5,21 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o projeto usa [versionamento semântico](https://semver.org/lang/pt-BR/),
 com tags no formato `vX.Y.Z`.
 
+## [0.3.0] - 2026-10-18
+
+### Adicionado
+- Aba **Snapshots** (`Ctrl+4`): lista os snapshots do BE selecionado (de todos,
+  se não houver um único selecionado), com espaço e data de criação, e permite
+  **criar**, **clonar** num novo BE e **destruir** snapshots. Antes, era possível
+  criar um snapshot, mas não vê-lo na interface.
+- `BectlManager::listSnapshots()`, que lê `bectl list -H -s` conforme o formato
+  de `sbin/bectl/bectl_list.c`, ignorando a origem de clones, que também contém
+  `@`. Coberta pelo teste unitário (com a saída no formato do `bectl`) e pelo de
+  integração (contra o `bectl` real).
+
+### Alterado
+- Criar um snapshot atualiza a lista, para que ele apareça na nova aba.
+
 ## [0.2.1] - 2026-10-17
 
 ### Corrigido
@@ -93,6 +108,8 @@ com tags no formato `vX.Y.Z`.
 - Temas, tradução (en_US, pt_BR, es_ES), compilação por CMake e QMake, modelo
   de port do FreeBSD e CI no GitHub Actions (Ubuntu e FreeBSD amd64).
 
+[0.3.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/cleberalves40/bectl-gui/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/cleberalves40/bectl-gui/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/cleberalves40/bectl-gui/compare/v0.1.0...v0.1.1

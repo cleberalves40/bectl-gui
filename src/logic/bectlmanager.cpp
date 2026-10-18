@@ -162,6 +162,36 @@ QVector<BootEnvironment> BectlManager::listEnvironments(bool scriptFormat, bool 
     return result;
 }
 
+// Com -s, "bectl list -H" imprime cada BE numa linha sem recuo e, com recuo de
+// dois espaços, o dataset do BE e seus snapshots ("pool/ROOT/be@snap"); a
+// origem de um clone aparece com quatro espaços e também contém "@".
+QVector<BeSnapshot> BectlManager::listSnapshots()
+{
+    const QStringList args{QStringLiteral("list"), QStringLiteral("-H"), QStringLiteral("-s")};
+    QString stdoutData;
+    try {
+        stdoutData = runOrRaise(args, false);
+    } catch (const std::exception &) {
+        stdoutData = runOrRaise(args, true);
+    }
+
+    QVector<BeSnapshot> result;
+    const QStringList lines = stdoutData.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    for (const QString &line : lines) {
+        if (!line.startsWith(QLatin1String("  ")) || line.startsWith(QLatin1String("   ")))
+            continue;
+        const QStringList parts = line.mid(2).split(QLatin1Char('\t'));
+        if (parts.size() < 5 || !parts[0].contains(QLatin1Char('@')))
+            continue;
+        BeSnapshot snap;
+        snap.name = parts[0].section(QLatin1Char('/'), -1);
+        snap.space = parts[3];
+        snap.created = parts[4];
+        result.append(snap);
+    }
+    return result;
+}
+
 std::optional<BootEnvironment> BectlManager::getEnvironment(const QString &name)
 {
     for (const auto &be : listEnvironments()) {

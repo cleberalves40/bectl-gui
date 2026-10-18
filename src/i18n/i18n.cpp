@@ -97,7 +97,7 @@ void ensureInit()
         c.insert(QStringLiteral("English (US)"), QStringLiteral("Inglês (EUA)"));
         c.insert(QStringLiteral("Portuguese (Brazil)"), QStringLiteral("Português (Brasil)"));
         c.insert(QStringLiteral("Spanish (Spain)"), QStringLiteral("Espanhol (Espanha)"));
-        c.insert(QStringLiteral("Help body"), QStringLiteral("<h3>bectl — Gerenciador de Boot Environments</h3><p>Interface inspirada no <b>OctoPKG</b> (lista + abas de detalhe).</p><ul><li><b>Atualizar</b> — bectl list -H</li><li><b>Criar</b> — novo BE, opcionalmente clonado de outro BE ou de um snapshot (digite <i>be@snapshot</i>)</li><li><b>Criar snapshot</b> — <i>be@nome</i>, para clonar depois</li><li><b>Ativar</b> — permanente ou temporário (-t)</li><li><b>Montar / Desmontar</b> — inspecionar os arquivos de um BE num diretório</li><li><b>Renomear / Destruir</b> — com confirmação; BE ativo protegido</li></ul><p>Operações privilegiadas usam <b>qt-sudo</b>. A janela continua respondendo enquanto elas rodam.</p><p>Atalhos: F5 atualizar · Ctrl+Q sair · Ajuda › Atalhos de teclado</p>"));
+        c.insert(QStringLiteral("Help body"), QStringLiteral("<h3>bectl — Gerenciador de Boot Environments</h3><p>Interface inspirada no <b>OctoPKG</b> (lista + abas de detalhe).</p><ul><li><b>Atualizar</b> — bectl list -H</li><li><b>Criar</b> — novo BE, opcionalmente clonado de outro BE ou de um snapshot (digite <i>be@snapshot</i>)</li><li>Aba <b>Snapshots</b> — snapshots do BE selecionado: criar, clonar num novo BE, destruir</li><li><b>Ativar</b> — permanente ou temporário (-t)</li><li><b>Montar / Desmontar</b> — inspecionar os arquivos de um BE num diretório</li><li><b>Renomear / Destruir</b> — com confirmação; BE ativo protegido</li></ul><p>Operações privilegiadas usam <b>qt-sudo</b>. A janela continua respondendo enquanto elas rodam.</p><p>Atalhos: F5 atualizar · Ctrl+Q sair · Ajuda › Atalhos de teclado</p>"));
         // Mensagens do BectlManager
         c.insert(QStringLiteral("'%1' not found. Install the security/qt-sudo package (pkg install qt-sudo)."), QStringLiteral("'%1' não encontrado. Instale o pacote security/qt-sudo (pkg install qt-sudo)."));
         c.insert(QStringLiteral("Failed to start '%1': %2"), QStringLiteral("Falha ao iniciar '%1': %2"));
@@ -128,14 +128,25 @@ void ensureInit()
         c.insert(QStringLiteral("Creating snapshot… (qt-sudo may ask for a password)"), QStringLiteral("Criando snapshot… (o qt-sudo pode pedir a senha)"));
         c.insert(QStringLiteral("OK: '%1' mounted."), QStringLiteral("OK: '%1' montado."));
         c.insert(QStringLiteral("OK: '%1' unmounted."), QStringLiteral("OK: '%1' desmontado."));
-        c.insert(QStringLiteral("OK: snapshot '%1' created. To clone it, use Create with '%1' as the source."), QStringLiteral("OK: snapshot '%1' criado. Para cloná-lo, use Criar com '%1' como origem."));
         c.insert(QStringLiteral("Wait for the current operation to finish."), QStringLiteral("Aguarde o fim da operação em andamento."));
+        // v0.3.0: aba Snapshots
+        c.insert(QStringLiteral("C&lone snapshot…"), QStringLiteral("C&lonar snapshot…"));
+        c.insert(QStringLiteral("Destroy s&napshot"), QStringLiteral("Destruir s&napshot"));
+        c.insert(QStringLiteral("Snapshots"), QStringLiteral("Snapshots"));
+        c.insert(QStringLiteral("Snapshot"), QStringLiteral("Snapshot"));
+        c.insert(QStringLiteral("Select a snapshot."), QStringLiteral("Selecione um snapshot."));
+        c.insert(QStringLiteral("Clone snapshot"), QStringLiteral("Clonar snapshot"));
+        c.insert(QStringLiteral("New Boot Environment name:"), QStringLiteral("Nome do novo Boot Environment:"));
+        c.insert(QStringLiteral("Cloning… (qt-sudo may ask for a password)"), QStringLiteral("Clonando… (o qt-sudo pode pedir a senha)"));
+        c.insert(QStringLiteral("OK: '%1' created from '%2'."), QStringLiteral("OK: '%1' criado a partir de '%2'."));
+        c.insert(QStringLiteral("OK: snapshot '%1' created."), QStringLiteral("OK: snapshot '%1' criado."));
+        c.insert(QStringLiteral("OK: snapshot '%1' destroyed."), QStringLiteral("OK: snapshot '%1' destruído."));
         g_cats.insert(QStringLiteral("pt_BR"), c);
     }
     {
         // en_US: só chaves que são identificadores, não texto em inglês.
         QHash<QString, QString> c;
-        c.insert(QStringLiteral("Help body"), QStringLiteral("<h3>bectl — Boot Environment Manager</h3><p>Interface inspired by <b>OctoPKG</b> (list + detail tabs).</p><ul><li><b>Refresh</b> — bectl list -H</li><li><b>Create</b> — new BE, optionally cloned from another BE or from a snapshot (type <i>be@snapshot</i>)</li><li><b>Create snapshot</b> — <i>be@name</i>, to clone later</li><li><b>Activate</b> — permanent or temporary (-t)</li><li><b>Mount / Unmount</b> — inspect a BE's files in a directory</li><li><b>Rename / Destroy</b> — with confirmation; the active BE is protected</li></ul><p>Privileged operations use <b>qt-sudo</b>. The window stays responsive while they run.</p><p>Shortcuts: F5 refresh · Ctrl+Q quit · Help › Keyboard shortcuts</p>"));
+        c.insert(QStringLiteral("Help body"), QStringLiteral("<h3>bectl — Boot Environment Manager</h3><p>Interface inspired by <b>OctoPKG</b> (list + detail tabs).</p><ul><li><b>Refresh</b> — bectl list -H</li><li><b>Create</b> — new BE, optionally cloned from another BE or from a snapshot (type <i>be@snapshot</i>)</li><li><b>Snapshots</b> tab — the selected BE's snapshots: create, clone into a new BE, destroy</li><li><b>Activate</b> — permanent or temporary (-t)</li><li><b>Mount / Unmount</b> — inspect a BE's files in a directory</li><li><b>Rename / Destroy</b> — with confirmation; the active BE is protected</li></ul><p>Privileged operations use <b>qt-sudo</b>. The window stays responsive while they run.</p><p>Shortcuts: F5 refresh · Ctrl+Q quit · Help › Keyboard shortcuts</p>"));
         g_cats.insert(QStringLiteral("en_US"), c);
     }
     {
@@ -222,7 +233,7 @@ void ensureInit()
         c.insert(QStringLiteral("English (US)"), QStringLiteral("Inglés (EE. UU.)"));
         c.insert(QStringLiteral("Portuguese (Brazil)"), QStringLiteral("Portugués (Brasil)"));
         c.insert(QStringLiteral("Spanish (Spain)"), QStringLiteral("Español (España)"));
-        c.insert(QStringLiteral("Help body"), QStringLiteral("<h3>bectl — Gestor de Boot Environments</h3><p>Interfaz inspirada en <b>OctoPKG</b> (lista + pestañas).</p><ul><li><b>Actualizar</b> — bectl list -H</li><li><b>Crear</b> — nuevo BE, opcionalmente clonado de otro BE o de un snapshot (escriba <i>be@snapshot</i>)</li><li><b>Crear snapshot</b> — <i>be@nombre</i>, para clonar después</li><li><b>Activar</b> — permanente o temporal (-t)</li><li><b>Montar / Desmontar</b> — inspeccionar los archivos de un BE en un directorio</li><li><b>Renombrar / Destruir</b> — con confirmación; BE activo protegido</li></ul><p>Las operaciones privilegiadas usan <b>qt-sudo</b>. La ventana sigue respondiendo mientras se ejecutan.</p><p>Atajos: F5 actualizar · Ctrl+Q salir · Ayuda › Atajos de teclado</p>"));
+        c.insert(QStringLiteral("Help body"), QStringLiteral("<h3>bectl — Gestor de Boot Environments</h3><p>Interfaz inspirada en <b>OctoPKG</b> (lista + pestañas).</p><ul><li><b>Actualizar</b> — bectl list -H</li><li><b>Crear</b> — nuevo BE, opcionalmente clonado de otro BE o de un snapshot (escriba <i>be@snapshot</i>)</li><li>Pestaña <b>Snapshots</b> — snapshots del BE seleccionado: crear, clonar en un nuevo BE, destruir</li><li><b>Activar</b> — permanente o temporal (-t)</li><li><b>Montar / Desmontar</b> — inspeccionar los archivos de un BE en un directorio</li><li><b>Renombrar / Destruir</b> — con confirmación; BE activo protegido</li></ul><p>Las operaciones privilegiadas usan <b>qt-sudo</b>. La ventana sigue respondiendo mientras se ejecutan.</p><p>Atajos: F5 actualizar · Ctrl+Q salir · Ayuda › Atajos de teclado</p>"));
         // Mensagens do BectlManager
         c.insert(QStringLiteral("'%1' not found. Install the security/qt-sudo package (pkg install qt-sudo)."), QStringLiteral("'%1' no encontrado. Instale el paquete security/qt-sudo (pkg install qt-sudo)."));
         c.insert(QStringLiteral("Failed to start '%1': %2"), QStringLiteral("No se pudo iniciar '%1': %2"));
@@ -253,8 +264,19 @@ void ensureInit()
         c.insert(QStringLiteral("Creating snapshot… (qt-sudo may ask for a password)"), QStringLiteral("Creando snapshot… (qt-sudo puede pedir la contraseña)"));
         c.insert(QStringLiteral("OK: '%1' mounted."), QStringLiteral("OK: '%1' montado."));
         c.insert(QStringLiteral("OK: '%1' unmounted."), QStringLiteral("OK: '%1' desmontado."));
-        c.insert(QStringLiteral("OK: snapshot '%1' created. To clone it, use Create with '%1' as the source."), QStringLiteral("OK: snapshot '%1' creado. Para clonarlo, use Crear con '%1' como origen."));
         c.insert(QStringLiteral("Wait for the current operation to finish."), QStringLiteral("Espere a que termine la operación en curso."));
+        // v0.3.0: aba Snapshots
+        c.insert(QStringLiteral("C&lone snapshot…"), QStringLiteral("C&lonar snapshot…"));
+        c.insert(QStringLiteral("Destroy s&napshot"), QStringLiteral("Destruir s&napshot"));
+        c.insert(QStringLiteral("Snapshots"), QStringLiteral("Snapshots"));
+        c.insert(QStringLiteral("Snapshot"), QStringLiteral("Snapshot"));
+        c.insert(QStringLiteral("Select a snapshot."), QStringLiteral("Seleccione un snapshot."));
+        c.insert(QStringLiteral("Clone snapshot"), QStringLiteral("Clonar snapshot"));
+        c.insert(QStringLiteral("New Boot Environment name:"), QStringLiteral("Nombre del nuevo Boot Environment:"));
+        c.insert(QStringLiteral("Cloning… (qt-sudo may ask for a password)"), QStringLiteral("Clonando… (qt-sudo puede pedir la contraseña)"));
+        c.insert(QStringLiteral("OK: '%1' created from '%2'."), QStringLiteral("OK: '%1' creado a partir de '%2'."));
+        c.insert(QStringLiteral("OK: snapshot '%1' created."), QStringLiteral("OK: snapshot '%1' creado."));
+        c.insert(QStringLiteral("OK: snapshot '%1' destroyed."), QStringLiteral("OK: snapshot '%1' destruido."));
         g_cats.insert(QStringLiteral("es_ES"), c);
     }
 }

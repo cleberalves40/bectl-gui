@@ -46,6 +46,9 @@ private slots:
     void onMount();
     void onUnmount();
     void onSnapshot();
+    void onCloneSnapshot();
+    void onDestroySnapshot();
+    void showTabSnapshots();
     void onFilterChanged(const QString &text);
     void onSelectionChanged();
     void onAbout();
@@ -67,6 +70,8 @@ private:
     void setupShortcuts();
     void applyTheme(const QString &id);
     void fillTable(const QVector<BootEnvironment> &list);
+    void fillSnapshots();
+    QString selectedSnapshot() const;
     QStringList selectedNames() const;
     QString selectedSingle() const;
     void setBusy(bool busy);
@@ -79,6 +84,7 @@ private:
 
     BectlManager m_mgr;
     QVector<BootEnvironment> m_list;   // última saída de "bectl list"
+    QVector<BeSnapshot> m_snapshots;   // última saída de "bectl list -s"
     QThread *m_worker = nullptr;       // operação em andamento, se houver
     QString m_themeId = QStringLiteral("octopkg");
 
@@ -88,6 +94,8 @@ private:
     QLabel *m_countLabel = nullptr;
     QTextEdit *m_info = nullptr;
     QTextEdit *m_output = nullptr;
+    QWidget *m_snapPage = nullptr;
+    QTableWidget *m_snapTable = nullptr;
     QTabWidget *m_tabs = nullptr;
     QToolBar *m_toolbar = nullptr;
     QActionGroup *m_themeGroup = nullptr;
@@ -109,6 +117,8 @@ private:
     QAction *m_actMount = nullptr;
     QAction *m_actUnmount = nullptr;
     QAction *m_actSnapshot = nullptr;
+    QAction *m_actCloneSnapshot = nullptr;
+    QAction *m_actDestroySnapshot = nullptr;
     QAction *m_actQuit = nullptr;
     QAction *m_actFocusFilter = nullptr;
 };
