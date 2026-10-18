@@ -11,6 +11,12 @@ com tags no formato `vX.Y.Z`.
 - `image.png`: captura de tela da v0.1.0, desatualizada; será substituída por
   uma da versão atual.
 
+### Corrigido
+- `tst_mainwindow`: o teste de que a janela não trava media o tempo do
+  construtor (< 800 ms) e falhava no aarch64 emulado do CI (862 ms). Agora
+  verifica que a tabela ainda está vazia logo após o construtor, o que não
+  depende da velocidade da máquina.
+
 ## [1.0.0] - 2026-10-18
 
 Primeira versão estável. Desde a 0.1.0: homologação nas arquiteturas Tier 1 do

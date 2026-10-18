@@ -8,7 +8,6 @@
 
 #include <QAction>
 #include <QApplication>
-#include <QElapsedTimer>
 #include <QFile>
 #include <QLabel>
 #include <QLineEdit>
@@ -84,16 +83,17 @@ private slots:
 
     void staysResponsiveWhileListing()
     {
-        QElapsedTimer timer;
-        timer.start();
         MainWindow w(nullptr, m_bectl, false);
-        // O construtor dispara a listagem, mas não espera o bectl (que leva 1 s).
-        QVERIFY2(timer.elapsed() < 800, qPrintable(QString::number(timer.elapsed())));
+        // O construtor dispara a listagem sem esperar o resultado: se esperasse,
+        // a tabela já estaria preenchida. Não depende da velocidade da máquina
+        // (medir o tempo do construtor falhava no aarch64 emulado do CI).
+        auto *table = w.findChild<QTableWidget *>(QStringLiteral("table"));
+        QCOMPARE(table->rowCount(), 0);
         QVERIFY(!action(w, "actRefresh")->isEnabled());
         QCOMPARE(w.findChild<QLabel *>(QStringLiteral("status"))->text(),
                  QStringLiteral("Listing Boot Environments…"));
 
-        auto *table = w.findChild<QTableWidget *>(QStringLiteral("table"));
+        // A janela segue processando eventos até a listagem terminar.
         QTRY_COMPARE_WITH_TIMEOUT(table->rowCount(), 3, 5000);
         QVERIFY(action(w, "actRefresh")->isEnabled());
         QCOMPARE(listCalls(), 1);
