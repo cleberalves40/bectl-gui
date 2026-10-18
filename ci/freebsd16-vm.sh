@@ -40,8 +40,8 @@ git archive --format=tar.gz -o "$work/serve/src.tgz" "$tag"
 
 # Configuração inicial (nuageinit, disco "cidata"): um script executado como
 # root no fim do boot. A saída volta ao runner por nc, e a VM se desliga.
-cat >"$work/user-data" <<'EOF'
-#!/bin/sh
+printf '#!/bin/sh\nTAG=%s\n' "$tag" >"$work/user-data"
+cat >>"$work/user-data" <<'EOF'
 log=/var/log/bectl-ci.log
 # No boot, o PATH não inclui /usr/local, onde ficam os pacotes (cmake etc.).
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
@@ -53,7 +53,12 @@ export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 	mkdir -p /tmp/src && tar -xzf /tmp/src.tgz -C /tmp/src
 	command -v pkg >/dev/null || env ASSUME_ALWAYS_YES=yes pkg bootstrap -f
 	set +x
-	cd /tmp/src && env ASSUME_ALWAYS_YES=yes sh ci/freebsd-ci.sh && sh ci/freebsd-port.sh
+	# ci/freebsd-port.sh gera o distfile com git archive; o código chega aqui
+	# como tarball, então vira um repositório de um commit, com o mesmo conteúdo.
+	cd /tmp/src && env ASSUME_ALWAYS_YES=yes sh ci/freebsd-ci.sh &&
+		pkg install -y git >/dev/null && git init -q &&
+		git add -A && git -c user.name=ci -c user.email=ci@localhost commit -qm "$TAG" &&
+		sh ci/freebsd-port.sh
 	echo "BECTL-CI-RESULT=$?"
 } >"$log" 2>&1
 nc -N 10.0.2.2 9000 <"$log"
