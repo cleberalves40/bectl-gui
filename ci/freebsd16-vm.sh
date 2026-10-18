@@ -43,6 +43,8 @@ git archive --format=tar.gz -o "$work/serve/src.tgz" "$tag"
 cat >"$work/user-data" <<'EOF'
 #!/bin/sh
 log=/var/log/bectl-ci.log
+# No boot, o PATH não inclui /usr/local, onde ficam os pacotes (cmake etc.).
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 {
 	set -x
 	uname -a
