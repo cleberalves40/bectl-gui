@@ -76,6 +76,9 @@ private:
     void fillTable(const QVector<BootEnvironment> &list);
     void fillSnapshots();
     QString selectedSnapshot() const;
+    QString requireSingleSelection();
+    QString requireSnapshotSelection();
+    void activateSelected(bool temporary);
     QStringList selectedNames() const;
     QString selectedSingle() const;
     void setBusy(bool busy);

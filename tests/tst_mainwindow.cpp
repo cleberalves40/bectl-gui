@@ -12,6 +12,9 @@
 #include <QFile>
 #include <QLabel>
 #include <QComboBox>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QTimer>
 #include <QShortcut>
 #include <QToolBar>
 #include <QLineEdit>
@@ -220,6 +223,66 @@ private slots:
         QCOMPARE(action(w, "actRefresh")->shortcuts(),
                  QList<QKeySequence>({QKeySequence(QStringLiteral("F5")), QKeySequence(QStringLiteral("Ctrl+R"))}));
         QTRY_VERIFY_WITH_TIMEOUT(action(w, "actRefresh")->isEnabled(), 5000);
+    }
+
+    // Ações diferentes não podem compartilhar o ícone no menu Ações.
+    void actionIconsAreDistinct()
+    {
+        MainWindow w(nullptr, m_bectl, false);
+        const auto image = [&w](const char *name) { return action(w, name)->icon().pixmap(16).toImage(); };
+        QVERIFY(!image("actCreate").isNull());
+        QVERIFY(image("actCreate") != image("actCloneSnapshot"));
+        QVERIFY(image("actDestroy") != image("actDestroySnapshot"));
+        QVERIFY(image("actSnapshot") != image("actCloneSnapshot"));
+        QTRY_VERIFY_WITH_TIMEOUT(action(w, "actRefresh")->isEnabled(), 5000);
+    }
+
+    // Ativar e Ativar temporariamente compartilham a implementação; cada um
+    // precisa continuar chamando o bectl com os argumentos certos.
+    void activateBothWays()
+    {
+        MainWindow w(nullptr, m_bectl, false);
+        auto *table = w.findChild<QTableWidget *>(QStringLiteral("table"));
+        QTRY_COMPARE_WITH_TIMEOUT(table->rowCount(), 3, 5000);
+        selectRows(table, {2});
+        for (const char *name : {"actActivate", "actActivateTemp"}) {
+            // Responde "Sim" à confirmação assim que ela abrir.
+            QTimer::singleShot(0, [] {
+                if (auto *box = qobject_cast<QMessageBox *>(QApplication::activeModalWidget()))
+                    box->button(QMessageBox::Yes)->click();
+            });
+            action(w, name)->trigger();
+            QTRY_VERIFY_WITH_TIMEOUT(action(w, "actRefresh")->isEnabled(), 5000);
+        }
+        QFile f(logPath());
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        const QString calls = QString::fromUtf8(f.readAll());
+        QVERIFY2(calls.contains(QStringLiteral("activate be-idle\n")), qPrintable(calls));
+        QVERIFY2(calls.contains(QStringLiteral("activate -t be-idle\n")), qPrintable(calls));
+    }
+
+    // Atualizar a lista ou filtrar não pode trocar o BE selecionado.
+    void selectionSurvivesRefreshAndFilter()
+    {
+        MainWindow w(nullptr, m_bectl, false);
+        auto *table = w.findChild<QTableWidget *>(QStringLiteral("table"));
+        QTRY_COMPARE_WITH_TIMEOUT(table->rowCount(), 3, 5000);
+        selectRows(table, {1, 2});
+        action(w, "actRefresh")->trigger();
+        QTRY_VERIFY_WITH_TIMEOUT(action(w, "actRefresh")->isEnabled(), 5000);
+        const auto selected = [table] {
+            QStringList names;
+            for (const QModelIndex &i : table->selectionModel()->selectedRows())
+                names << table->item(i.row(), 1)->text();
+            names.sort();
+            return names;
+        };
+        QCOMPARE(selected(), QStringList({QStringLiteral("be-idle"), QStringLiteral("be-mounted")}));
+
+        w.findChild<QLineEdit *>(QStringLiteral("filter"))->setText(QStringLiteral("idle"));
+        QCOMPARE(selected(), QStringList({QStringLiteral("be-idle")}));
+        w.findChild<QLineEdit *>(QStringLiteral("filter"))->setText(QStringLiteral("default"));
+        QCOMPARE(selected(), QStringList({QStringLiteral("default")}));   // nada a preservar: primeira linha
     }
 
     void preferencesDisabledWhileBusy()

@@ -21,8 +21,12 @@ Em cada combinação, nesta ordem:
    `bectl` falso.
 3. **`tst_mainwindow`**: a janela com um `bectl` falso (plataforma offscreen). Verifica que
    ela responde durante a execução, que filtro e seleção usam a lista em cache, que as
-   ações e a aba Snapshots acompanham a seleção e que uma operação em andamento bloqueia
-   outras e o fechamento.
+   ações e a aba Snapshots acompanham a seleção, que a seleção sobrevive à atualização, que
+   uma operação em andamento bloqueia outras e o fechamento, e cobre ainda as Preferências
+   (tema do sistema por padrão, salvar e restaurar), a ausência de ações, atalhos e ícones
+   duplicados e os dois modos de ativação. No job Ubuntu, roda também com
+   `QT_STYLE_OVERRIDE=windows`, para verificar que voltar ao tema **Sistema** restaura um
+   estilo diferente do Fusion.
 4. **`tst_bectlmanager`**: integração contra o `bectl(8)` real. O
    [`tests/freebsd-e2e.sh`](../tests/freebsd-e2e.sh) cria um pool ZFS de rascunho num
    `md(4)`, organizado como raiz de boot environments (`<pool>/ROOT/default`, com
@@ -42,14 +46,14 @@ O port não é construído com o `poudriere`. Ele exigiria uma jail e a compila�
 dependências, caro demais por job, principalmente no aarch64 emulado. A validação acima
 usa o mesmo framework, com as dependências instaladas por `pkg`.
 
-## Resultados (1.0.0)
+## Resultados (1.1.2)
 
 | Release | Arquitetura | Compilador | Qt6 | Warnings | Testes (validação + interface + integração) | Port |
 |:---|:---|:---|:---|:---:|:---:|:---|
-| 14.5 | amd64 | Clang 21.1.8 | 6.11.2 | 0 | 22 + 8 + 14 ✅ | ✅ `FreeBSD:14:amd64` |
-| 14.5 | aarch64 | Clang 21.1.8 | 6.11.2 | 0 | 22 + 8 + 14 ✅ | ✅ `FreeBSD:14:aarch64` |
-| 15.1 | amd64 | Clang 19.1.7 | 6.11.2 | 0 | 22 + 8 + 14 ✅ | ✅ `FreeBSD:15:amd64` |
-| 15.1 | aarch64 | Clang 19.1.7 | 6.11.2 | 0 | 22 + 8 + 14 ✅ | ✅ `FreeBSD:15:aarch64` |
+| 14.5 | amd64 | Clang 21.1.8 | 6.11.2 | 0 | 22 + 18 + 14 ✅ | ✅ `FreeBSD:14:amd64` |
+| 14.5 | aarch64 | Clang 21.1.8 | 6.11.2 | 0 | 22 + 18 + 14 ✅ | ✅ `FreeBSD:14:aarch64` |
+| 15.1 | amd64 | Clang 19.1.7 | 6.11.2 | 0 | 22 + 18 + 14 ✅ | ✅ `FreeBSD:15:amd64` |
+| 15.1 | aarch64 | Clang 19.1.7 | 6.11.2 | 0 | 22 + 18 + 14 ✅ | ✅ `FreeBSD:15:aarch64` |
 
 Nenhuma combinação exigiu mudança de código ou flags específicas. O código não depende
 de tamanho de tipos, ordem de bytes nem do sinal de `char`: é Qt puro, e a única

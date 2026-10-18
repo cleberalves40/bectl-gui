@@ -5,6 +5,29 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o projeto usa [versionamento semântico](https://semver.org/lang/pt-BR/),
 com tags no formato `vX.Y.Z`.
 
+## [1.1.2] - 2026-10-18
+
+### Corrigido
+- A seleção na tabela de BEs se perdia a cada atualização da lista, inclusive
+  a que ocorre depois de cada operação, e voltava para o primeiro BE: a ação
+  seguinte, como Ativar temporariamente logo após Ativar, podia ir para outro
+  BE. Agora a atualização e o filtro preservam os BEs selecionados, e só
+  selecionam o primeiro se nenhum deles estiver visível.
+- **Clonar snapshot** usava o mesmo ícone de **Criar** BE, e **Destruir
+  snapshot** o mesmo de **Destruir** BE; agora cada ação tem ícone próprio.
+
+### Alterado
+- Código da interface sem duplicação: as checagens de seleção ("selecione
+  exatamente um BE", repetida em cinco ações, e "selecione um snapshot", em
+  duas) e as ações Ativar e Ativar temporariamente, quase idênticas, passam a
+  ter uma implementação cada. Os textos e o comportamento não mudam.
+- `docs/ARCHITECTURES.md` atualizado com os testes atuais.
+
+### Adicionado
+- `tst_mainwindow` (+3, total 18): seleção preservada após atualizar e
+  filtrar, ícones distintos e os dois modos de ativação chamando o `bectl`
+  com os argumentos certos.
+
 ## [1.1.1] - 2026-10-18
 
 ### Corrigido
@@ -175,6 +198,7 @@ snapshots e port validado. O detalhamento está nas versões abaixo.
 - Temas, tradução (en_US, pt_BR, es_ES), compilação por CMake e QMake, modelo
   de port do FreeBSD e CI no GitHub Actions (Ubuntu e FreeBSD amd64).
 
+[1.1.2]: https://github.com/cleberalves40/bectl-gui/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/cleberalves40/bectl-gui/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/cleberalves40/bectl-gui/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.3.0...v1.0.0

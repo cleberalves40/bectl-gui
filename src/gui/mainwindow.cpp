@@ -162,9 +162,10 @@ void MainWindow::setupMenus()
     m_actMenu->addSeparator();
     m_actSnapshot = m_actMenu->addAction(style()->standardIcon(QStyle::SP_DialogSaveButton),
                                          QStringLiteral("Create &snapshot…"), this, &MainWindow::onSnapshot);
-    m_actCloneSnapshot = m_actMenu->addAction(style()->standardIcon(QStyle::SP_FileDialogNewFolder),
+    // Ícones distintos dos de Criar e Destruir BE, para não confundir no menu.
+    m_actCloneSnapshot = m_actMenu->addAction(style()->standardIcon(QStyle::SP_FileLinkIcon),
                                               QStringLiteral("C&lone snapshot…"), this, &MainWindow::onCloneSnapshot);
-    m_actDestroySnapshot = m_actMenu->addAction(style()->standardIcon(QStyle::SP_TrashIcon),
+    m_actDestroySnapshot = m_actMenu->addAction(style()->standardIcon(QStyle::SP_DialogDiscardButton),
                                                 QStringLiteral("Destroy s&napshot"), this, &MainWindow::onDestroySnapshot);
     m_actMenu->addSeparator();
     m_actDestroy = m_actMenu->addAction(style()->standardIcon(QStyle::SP_TrashIcon),
@@ -544,6 +545,9 @@ void MainWindow::appendOutput(const QString &line)
 void MainWindow::fillTable(const QVector<BootEnvironment> &list)
 {
     const QString filter = m_filter ? m_filter->text().trimmed().toLower() : QString();
+    // A seleção sobrevive à atualização e ao filtro: senão, depois de cada
+    // operação a próxima ação iria para o primeiro BE da lista.
+    const QStringList previous = selectedNames();
     m_table->setRowCount(0);
 
     int shown = 0;
@@ -590,7 +594,12 @@ void MainWindow::fillTable(const QVector<BootEnvironment> &list)
     }
 
     m_countLabel->setText(I18n::tr("%1 BE(s)").arg(shown));
-    if (m_table->rowCount() > 0)
+    for (int row = 0; row < m_table->rowCount(); ++row) {
+        if (previous.contains(m_table->item(row, 0)->data(Qt::UserRole).toString()))
+            m_table->selectionModel()->select(m_table->model()->index(row, 0),
+                                              QItemSelectionModel::Select | QItemSelectionModel::Rows);
+    }
+    if (m_table->rowCount() > 0 && !m_table->selectionModel()->hasSelection())
         m_table->selectRow(0);
 }
 
@@ -644,6 +653,25 @@ void MainWindow::fillSnapshots()
     }
     m_tabs->setTabText(m_tabs->indexOf(m_snapPage),
                        QStringLiteral("%1 (%2)").arg(I18n::tr("Snapshots")).arg(m_snapTable->rowCount()));
+}
+
+// Para ações que exigem exatamente um BE (ou um snapshot): avisa e devolve
+// vazio se a seleção não servir.
+QString MainWindow::requireSingleSelection()
+{
+    const QString name = selectedSingle();
+    if (name.isEmpty())
+        QMessageBox::information(this, I18n::tr("Selection"),
+                                 I18n::tr("Select exactly one Boot Environment."));
+    return name;
+}
+
+QString MainWindow::requireSnapshotSelection()
+{
+    const QString snap = selectedSnapshot();
+    if (snap.isEmpty())
+        QMessageBox::information(this, I18n::tr("Selection"), I18n::tr("Select a snapshot."));
+    return snap;
 }
 
 QString MainWindow::selectedSnapshot() const
@@ -755,52 +783,41 @@ void MainWindow::onCreate()
 }
 void MainWindow::onActivate()
 {
-    const QString name = selectedSingle();
-    if (name.isEmpty()) {
-        QMessageBox::information(this, I18n::tr("Selection"),
-                                 I18n::tr("Select exactly one Boot Environment."));
-        return;
-    }
-    if (QMessageBox::question(this, I18n::tr("Activate"),
-                              I18n::tr("Activate '%1' permanently?").arg(name))
-        != QMessageBox::Yes)
-        return;
-    appendOutput(QStringLiteral("bectl activate %1").arg(name));
-    runAsync(I18n::tr("Activating… (qt-sudo may ask for a password)"),
-             [this, name]() { m_mgr.activate(name, false); },
-             [this]() {
-                 appendOutput(I18n::tr("OK: activated."));
-                 refreshList();
-             });
+    activateSelected(false);
 }
+
 void MainWindow::onActivateTemp()
 {
-    const QString name = selectedSingle();
-    if (name.isEmpty()) {
-        QMessageBox::information(this, I18n::tr("Selection"),
-                                 I18n::tr("Select exactly one Boot Environment."));
+    activateSelected(true);
+}
+
+// Ativa o BE selecionado de forma permanente ou só para o próximo boot (-t).
+void MainWindow::activateSelected(bool temporary)
+{
+    const QString name = requireSingleSelection();
+    if (name.isEmpty())
         return;
-    }
-    if (QMessageBox::question(this, I18n::tr("Activate (temporary)"),
-                              I18n::tr("Activate '%1' temporarily?").arg(name))
+    const QString question = temporary ? I18n::tr("Activate '%1' temporarily?")
+                                       : I18n::tr("Activate '%1' permanently?");
+    if (QMessageBox::question(this, temporary ? I18n::tr("Activate (temporary)") : I18n::tr("Activate"),
+                              question.arg(name))
         != QMessageBox::Yes)
         return;
-    appendOutput(QStringLiteral("bectl activate -t %1").arg(name));
+    appendOutput(QStringLiteral("bectl activate %1%2")
+                     .arg(temporary ? QStringLiteral("-t ") : QString(), name));
     runAsync(I18n::tr("Activating… (qt-sudo may ask for a password)"),
-             [this, name]() { m_mgr.activate(name, true); },
-             [this]() {
-                 appendOutput(I18n::tr("OK: activated (temporary)."));
+             [this, name, temporary]() { m_mgr.activate(name, temporary); },
+             [this, temporary]() {
+                 appendOutput(temporary ? I18n::tr("OK: activated (temporary).")
+                                        : I18n::tr("OK: activated."));
                  refreshList();
              });
 }
 void MainWindow::onRename()
 {
-    const QString name = selectedSingle();
-    if (name.isEmpty()) {
-        QMessageBox::information(this, I18n::tr("Selection"),
-                                 I18n::tr("Select exactly one Boot Environment."));
+    const QString name = requireSingleSelection();
+    if (name.isEmpty())
         return;
-    }
     bool ok = false;
     const QString neu = QInputDialog::getText(this, I18n::tr("Rename"),
                                               I18n::tr("New name:"), QLineEdit::Normal, name, &ok)
@@ -873,12 +890,9 @@ void MainWindow::onDestroy()
 
 void MainWindow::onMount()
 {
-    const QString name = selectedSingle();
-    if (name.isEmpty()) {
-        QMessageBox::information(this, I18n::tr("Selection"),
-                                 I18n::tr("Select exactly one Boot Environment."));
+    const QString name = requireSingleSelection();
+    if (name.isEmpty())
         return;
-    }
     QDialog dlg(this);
     dlg.setWindowTitle(I18n::tr("Mount Boot Environment"));
     auto *form = new QFormLayout(&dlg);
@@ -916,12 +930,9 @@ void MainWindow::onMount()
 
 void MainWindow::onUnmount()
 {
-    const QString name = selectedSingle();
-    if (name.isEmpty()) {
-        QMessageBox::information(this, I18n::tr("Selection"),
-                                 I18n::tr("Select exactly one Boot Environment."));
+    const QString name = requireSingleSelection();
+    if (name.isEmpty())
         return;
-    }
     appendOutput(QStringLiteral("bectl umount %1").arg(name));
     runAsync(I18n::tr("Unmounting… (qt-sudo may ask for a password)"),
              [this, name]() { m_mgr.unmount(name); },
@@ -971,11 +982,9 @@ void MainWindow::onSnapshot()
 
 void MainWindow::onCloneSnapshot()
 {
-    const QString snap = selectedSnapshot();
-    if (snap.isEmpty()) {
-        QMessageBox::information(this, I18n::tr("Selection"), I18n::tr("Select a snapshot."));
+    const QString snap = requireSnapshotSelection();
+    if (snap.isEmpty())
         return;
-    }
     bool ok = false;
     const QString name = QInputDialog::getText(this, I18n::tr("Clone snapshot"),
                                                I18n::tr("New Boot Environment name:"),
@@ -994,11 +1003,9 @@ void MainWindow::onCloneSnapshot()
 
 void MainWindow::onDestroySnapshot()
 {
-    const QString snap = selectedSnapshot();
-    if (snap.isEmpty()) {
-        QMessageBox::information(this, I18n::tr("Selection"), I18n::tr("Select a snapshot."));
+    const QString snap = requireSnapshotSelection();
+    if (snap.isEmpty())
         return;
-    }
     if (QMessageBox::warning(this, I18n::tr("Confirm destroy"),
                              I18n::tr("WARNING: destroying '%1' is irreversible.\nContinue?").arg(snap),
                              QMessageBox::Yes | QMessageBox::No, QMessageBox::No)
