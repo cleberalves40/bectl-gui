@@ -19,13 +19,22 @@ bectl-gui/
 ├── CMakeLists.txt           # Build system principal (CMake)
 ├── bectl_gui.pro            # Build system alternativo (QMake)
 ├── bectl_gui.desktop        # Entrada para o menu de aplicativos desktop
-├── freebsd/                 # Modelo de porta para o FreeBSD Ports
+├── CHANGELOG.md             # Histórico de versões
+├── freebsd/                 # Port para o FreeBSD Ports (sysutils/bectl-gui)
 │   ├── Makefile
 │   └── pkg-descr
-├── .github/workflows/       # CI/CD automatizado via GitHub Actions
-│   └── build.yml
-├── README.md
-├── LICENSE
+├── ci/                      # Scripts executados nas VMs FreeBSD do CI
+│   ├── freebsd-ci.sh        # Build + testes
+│   └── freebsd-port.sh      # Validação do port (portlint, stage-qa, pacote)
+├── docs/
+│   └── ARCHITECTURES.md     # Homologação nas arquiteturas Tier 1
+├── tests/
+│   ├── tst_validation.cpp   # Validações e mensagens (bectl falso)
+│   ├── tst_mainwindow.cpp   # Interface (bectl falso, offscreen)
+│   ├── tst_bectlmanager.cpp # Integração contra o bectl(8) real
+│   └── freebsd-e2e.sh       # Prepara um pool ZFS de rascunho e roda os testes
+├── .github/workflows/
+│   └── build.yml            # Ubuntu + FreeBSD 14.5/15.1 × amd64/aarch64
 └── src/
     ├── main.cpp             # Ponto de entrada (QApplication & i18n)
     ├── logic/               # Camada de lógica e integração de sistema
@@ -43,11 +52,13 @@ bectl-gui/
 
 | Componente | Localização | Responsabilidade |
 |:---|:---|:---|
-| **Lógica** | `src/logic/bectlmanager.*` | Execução segura dos comandos `bectl` via `QProcess` |
-| **Interface GUI** | `src/gui/mainwindow.*` | Janela Qt6, tabela com indicadores de estado e diálogos |
+| **Lógica** | `src/logic/bectlmanager.*` | Execução dos comandos `bectl` via `QProcess`, validação de nomes e leitura da saída (BEs e snapshots) |
+| **Interface GUI** | `src/gui/mainwindow.*` | Janela Qt6, operações em segundo plano, abas Informação / Saída / Ajuda / Snapshots |
 | **Temas** | `src/gui/themes.*` | Folhas de estilo QSS para mais de 10 temas |
-| **i18n** | `src/i18n/i18n.*` | Tradução dinâmica (en_US, pt_BR, es_ES) |
+| **i18n** | `src/i18n/i18n.*` | Tradução dinâmica (en_US, pt_BR, es_ES), inclusive das mensagens de erro |
 | **Entrada** | `src/main.cpp` | Inicialização da `QApplication` e configuração regional |
+
+O código compila em duas bibliotecas estáticas, `bectl_logic` e `bectl_ui`, compartilhadas pelo executável e pelos testes.
 
 ### Elevação de privilégios com qt-sudo
 
@@ -156,7 +167,8 @@ sh tests/freebsd-e2e.sh build
 Homologado nas arquiteturas **Tier 1** do FreeBSD, **amd64** e **aarch64**, nas releases
 **14.5** e **15.1**. Cada combinação tem um job no CI que compila e executa o teste de
 integração. Os resultados e detalhes estão em [docs/ARCHITECTURES.md](docs/ARCHITECTURES.md),
-e o histórico de versões no [CHANGELOG.md](CHANGELOG.md).
+o histórico de versões no [CHANGELOG.md](CHANGELOG.md), e o processo de versão e de envio
+do port ao FreeBSD em [docs/RELEASING.md](docs/RELEASING.md).
 
 ---
 

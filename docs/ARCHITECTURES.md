@@ -17,18 +17,19 @@ Em cada combinação, nesta ordem:
 
 1. **Build** com o Clang do sistema e os pacotes Qt6, sem warnings.
 2. **`tst_validation`**: validação de nomes e caminhos, argumentos que chegam ao
-   `bectl`, status de saída e tradução das mensagens, com um `bectl` falso.
+   `bectl`, status de saída, tradução das mensagens e leitura de `bectl list -s`, com um
+   `bectl` falso.
 3. **`tst_mainwindow`**: a janela com um `bectl` falso (plataforma offscreen). Verifica que
    ela responde durante a execução, que filtro e seleção usam a lista em cache, que as
-   ações acompanham a seleção e que uma operação em andamento bloqueia outras e o
-   fechamento.
+   ações e a aba Snapshots acompanham a seleção e que uma operação em andamento bloqueia
+   outras e o fechamento.
 4. **`tst_bectlmanager`**: integração contra o `bectl(8)` real. O
    [`tests/freebsd-e2e.sh`](../tests/freebsd-e2e.sh) cria um pool ZFS de rascunho num
    `md(4)`, organizado como raiz de boot environments (`<pool>/ROOT/default`, com
    `bootfs`), e executa o teste por meio de `bectl -r <pool>/ROOT`, sem tocar nos boot
-   environments do sistema. Cobre listagem, criação a partir de BE e de snapshot,
-   duplicata, renomeação, ativação permanente e temporária, montagem e destruição em
-   lote.
+   environments do sistema. Cobre listagem de BEs e de snapshots, criação a partir de BE
+   e de snapshot, duplicata, renomeação, ativação permanente e temporária, montagem,
+   destruição de snapshot e destruição em lote.
 5. **Inicialização da GUI** (offscreen).
 6. **Port** ([`ci/freebsd-port.sh`](../ci/freebsd-port.sh)), com o framework de ports
    numa árvore esparsa (só `Mk/`, `Templates/`, `Keywords/` e as dependências diretas):
@@ -41,18 +42,21 @@ O port não é construído com o `poudriere`. Ele exigiria uma jail e a compila�
 dependências, caro demais por job, principalmente no aarch64 emulado. A validação acima
 usa o mesmo framework, com as dependências instaladas por `pkg`.
 
-## Resultados (0.2.1)
+## Resultados (1.0.0)
 
 | Release | Arquitetura | Compilador | Qt6 | Warnings | Testes (validação + interface + integração) | Port |
 |:---|:---|:---|:---|:---:|:---:|:---|
-| 14.5 | amd64 | Clang 21.1.8 | 6.11.2 | 0 | 21 + 7 + 12 ✅ | ✅ `FreeBSD:14:amd64` |
-| 14.5 | aarch64 | Clang 21.1.8 | 6.11.2 | 0 | 21 + 7 + 12 ✅ | ✅ `FreeBSD:14:aarch64` |
-| 15.1 | amd64 | Clang 19.1.7 | 6.11.2 | 0 | 21 + 7 + 12 ✅ | ✅ `FreeBSD:15:amd64` |
-| 15.1 | aarch64 | Clang 19.1.7 | 6.11.2 | 0 | 21 + 7 + 12 ✅ | ✅ `FreeBSD:15:aarch64` |
+| 14.5 | amd64 | Clang 21.1.8 | 6.11.2 | 0 | 22 + 8 + 14 ✅ | ✅ `FreeBSD:14:amd64` |
+| 14.5 | aarch64 | Clang 21.1.8 | 6.11.2 | 0 | 22 + 8 + 14 ✅ | ✅ `FreeBSD:14:aarch64` |
+| 15.1 | amd64 | Clang 19.1.7 | 6.11.2 | 0 | 22 + 8 + 14 ✅ | ✅ `FreeBSD:15:amd64` |
+| 15.1 | aarch64 | Clang 19.1.7 | 6.11.2 | 0 | 22 + 8 + 14 ✅ | ✅ `FreeBSD:15:aarch64` |
 
 Nenhuma combinação exigiu mudança de código ou flags específicas. O código não depende
 de tamanho de tipos, ordem de bytes nem do sinal de `char`: é Qt puro, e a única
 integração com o sistema é a execução do `bectl(8)` por `QProcess`.
+
+No job Ubuntu, os mesmos testes (exceto o de integração, que precisa do `bectl`) rodam
+também com AddressSanitizer e UBSan.
 
 Problemas encontrados pela validação do port, ambos corrigidos na 0.2.1:
 

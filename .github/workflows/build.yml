@@ -46,6 +46,22 @@ jobs:
       run: |
         ctest --test-dir build --output-on-failure
 
+    # Os mesmos testes com AddressSanitizer e UBSan: erros de memória,
+    # vazamentos e comportamento indefinido reprovam o job.
+    - name: Run tests with ASan + UBSan
+      env:
+        ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+        UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+      run: |
+        cmake -B build-asan -S . -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_COMPILER=clang++ \
+          -DBECTL_GUI_BUILD_TESTS=ON \
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer" \
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+        cmake --build build-asan
+        ctest --test-dir build-asan --output-on-failure
+
     - name: Test QMake build
       run: |
         mkdir -p build-qmake

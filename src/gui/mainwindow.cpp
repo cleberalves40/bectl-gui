@@ -143,23 +143,28 @@ void MainWindow::setupMenus()
     m_helpMenu = menuBar()->addMenu(QStringLiteral("&Help"));
     m_actAbout = m_helpMenu->addAction(QStringLiteral("About bectl…"), this, &MainWindow::onAbout);
     m_actShortcuts = m_helpMenu->addAction(QStringLiteral("Keyboard shortcuts"), this, [this]() {
+        static const struct { const char *keys; const char *action; } shortcuts[] = {
+            {"F5 / Ctrl+R", "Refresh"},
+            {"Ctrl+N", "Create"},
+            {"Ctrl+Return", "Activate"},
+            {"Ctrl+T", "Activate temporary"},
+            {"F2", "Rename"},
+            {"Ctrl+Shift+S", "Create snapshot"},
+            {"Ctrl+M", "Mount"},
+            {"Ctrl+U", "Unmount"},
+            {"Delete", "Destroy selected"},
+            {"Ctrl+F", "Focus filter"},
+            {"Ctrl+1 / 2 / 3", "Tabs: Information / Output / Help"},
+            {"Ctrl+4", "Snapshots tab"},
+            {"Ctrl+Shift+T", "Next theme"},
+            {"Ctrl+Q", "Quit"},
+        };
+        QString rows;
+        for (const auto &s : shortcuts)
+            rows += QStringLiteral("<tr><td><b>%1</b></td><td>%2</td></tr>")
+                        .arg(QString::fromLatin1(s.keys), I18n::tr(s.action).toHtmlEscaped());
         QMessageBox::information(this, I18n::tr("Shortcuts"),
-            QStringLiteral(
-                "F5 / Ctrl+R     Refresh\n"
-                "Ctrl+N          Create\n"
-                "Ctrl+Return     Activate\n"
-                "Ctrl+T          Activate temporary\n"
-                "F2              Rename\n"
-                "Ctrl+Shift+S    Create snapshot\n"
-                "Ctrl+M          Mount\n"
-                "Ctrl+U          Unmount\n"
-                "Delete          Destroy selected\n"
-                "Ctrl+F          Focus filter\n"
-                "Ctrl+1 / 2 / 3  Tabs\n"
-                "Ctrl+4          Snapshots tab\n"
-                "Ctrl+Q          Quit\n"
-                "Ctrl+Shift+T    Next theme"
-            ));
+                                 QStringLiteral("<table cellspacing='4'>%1</table>").arg(rows));
     });
 }
 

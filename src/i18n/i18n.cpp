@@ -141,6 +141,18 @@ void ensureInit()
         c.insert(QStringLiteral("OK: '%1' created from '%2'."), QStringLiteral("OK: '%1' criado a partir de '%2'."));
         c.insert(QStringLiteral("OK: snapshot '%1' created."), QStringLiteral("OK: snapshot '%1' criado."));
         c.insert(QStringLiteral("OK: snapshot '%1' destroyed."), QStringLiteral("OK: snapshot '%1' destruído."));
+        // v1.0.0: diálogo de atalhos
+        c.insert(QStringLiteral("Refresh"), QStringLiteral("Atualizar"));
+        c.insert(QStringLiteral("Create"), QStringLiteral("Criar"));
+        c.insert(QStringLiteral("Activate temporary"), QStringLiteral("Ativar temporariamente"));
+        c.insert(QStringLiteral("Mount"), QStringLiteral("Montar"));
+        c.insert(QStringLiteral("Unmount"), QStringLiteral("Desmontar"));
+        c.insert(QStringLiteral("Destroy selected"), QStringLiteral("Destruir selecionado(s)"));
+        c.insert(QStringLiteral("Focus filter"), QStringLiteral("Ir para o filtro"));
+        c.insert(QStringLiteral("Tabs: Information / Output / Help"), QStringLiteral("Abas: Informação / Saída / Ajuda"));
+        c.insert(QStringLiteral("Snapshots tab"), QStringLiteral("Aba Snapshots"));
+        c.insert(QStringLiteral("Next theme"), QStringLiteral("Próximo tema"));
+        c.insert(QStringLiteral("Quit"), QStringLiteral("Sair"));
         g_cats.insert(QStringLiteral("pt_BR"), c);
     }
     {
@@ -277,6 +289,18 @@ void ensureInit()
         c.insert(QStringLiteral("OK: '%1' created from '%2'."), QStringLiteral("OK: '%1' creado a partir de '%2'."));
         c.insert(QStringLiteral("OK: snapshot '%1' created."), QStringLiteral("OK: snapshot '%1' creado."));
         c.insert(QStringLiteral("OK: snapshot '%1' destroyed."), QStringLiteral("OK: snapshot '%1' destruido."));
+        // v1.0.0: diálogo de atalhos
+        c.insert(QStringLiteral("Refresh"), QStringLiteral("Actualizar"));
+        c.insert(QStringLiteral("Create"), QStringLiteral("Crear"));
+        c.insert(QStringLiteral("Activate temporary"), QStringLiteral("Activar temporalmente"));
+        c.insert(QStringLiteral("Mount"), QStringLiteral("Montar"));
+        c.insert(QStringLiteral("Unmount"), QStringLiteral("Desmontar"));
+        c.insert(QStringLiteral("Destroy selected"), QStringLiteral("Destruir seleccionado(s)"));
+        c.insert(QStringLiteral("Focus filter"), QStringLiteral("Ir al filtro"));
+        c.insert(QStringLiteral("Tabs: Information / Output / Help"), QStringLiteral("Pestañas: Información / Salida / Ayuda"));
+        c.insert(QStringLiteral("Snapshots tab"), QStringLiteral("Pestaña Snapshots"));
+        c.insert(QStringLiteral("Next theme"), QStringLiteral("Siguiente tema"));
+        c.insert(QStringLiteral("Quit"), QStringLiteral("Salir"));
         g_cats.insert(QStringLiteral("es_ES"), c);
     }
 }
