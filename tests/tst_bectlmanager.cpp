@@ -12,6 +12,7 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
+#include <algorithm>
 #include <stdexcept>
 
 class TestBectlManager : public QObject
@@ -61,6 +62,26 @@ private slots:
         m_mgr.createSnapshot(QStringLiteral("default@snap1"));
         m_mgr.create(QStringLiteral("be-b"), QStringLiteral("default@snap1"));
         QVERIFY(m_mgr.getEnvironment(QStringLiteral("be-b")));
+    }
+
+    void listSnapshots()
+    {
+        const auto snaps = m_mgr.listSnapshots();
+        const auto it = std::find_if(snaps.begin(), snaps.end(), [](const BeSnapshot &s) {
+            return s.name == QLatin1String("default@snap1");
+        });
+        QVERIFY(it != snaps.end());
+        QCOMPARE(it->environment(), QStringLiteral("default"));
+        QVERIFY(!it->space.isEmpty());
+        QVERIFY2(it->created.contains(QLatin1Char(' ')), qPrintable(it->created));
+    }
+
+    void destroySnapshot()
+    {
+        m_mgr.createSnapshot(QStringLiteral("default@descartavel"));
+        m_mgr.destroy(QStringLiteral("default@descartavel"));
+        for (const auto &s : m_mgr.listSnapshots())
+            QVERIFY(s.name != QLatin1String("default@descartavel"));
     }
 
     void createSnapshotRequiresAt()

@@ -106,6 +106,11 @@ void MainWindow::setupMenus()
     m_actUnmount = m_actMenu->addAction(style()->standardIcon(QStyle::SP_MediaStop),
                                         QStringLiteral("&Unmount"), this, &MainWindow::onUnmount);
     m_actMenu->addSeparator();
+    m_actCloneSnapshot = m_actMenu->addAction(style()->standardIcon(QStyle::SP_FileDialogNewFolder),
+                                              QStringLiteral("C&lone snapshot…"), this, &MainWindow::onCloneSnapshot);
+    m_actDestroySnapshot = m_actMenu->addAction(style()->standardIcon(QStyle::SP_TrashIcon),
+                                                QStringLiteral("Destroy s&napshot"), this, &MainWindow::onDestroySnapshot);
+    m_actMenu->addSeparator();
     m_actDestroy = m_actMenu->addAction(style()->standardIcon(QStyle::SP_TrashIcon),
                                         QStringLiteral("&Destroy selected"), this, &MainWindow::onDestroy);
 
@@ -151,6 +156,7 @@ void MainWindow::setupMenus()
                 "Delete          Destroy selected\n"
                 "Ctrl+F          Focus filter\n"
                 "Ctrl+1 / 2 / 3  Tabs\n"
+                "Ctrl+4          Snapshots tab\n"
                 "Ctrl+Q          Quit\n"
                 "Ctrl+Shift+T    Next theme"
             ));
@@ -184,6 +190,8 @@ void MainWindow::retranslateUi()
     if (m_actSnapshot) m_actSnapshot->setText(I18n::tr("Create &snapshot…"));
     if (m_actMount) m_actMount->setText(I18n::tr("&Mount…"));
     if (m_actUnmount) m_actUnmount->setText(I18n::tr("&Unmount"));
+    if (m_actCloneSnapshot) m_actCloneSnapshot->setText(I18n::tr("C&lone snapshot…"));
+    if (m_actDestroySnapshot) m_actDestroySnapshot->setText(I18n::tr("Destroy s&napshot"));
     if (m_actAbout) m_actAbout->setText(I18n::tr("About bectl…"));
     if (m_actShortcuts) m_actShortcuts->setText(I18n::tr("Keyboard shortcuts"));
 
@@ -203,7 +211,11 @@ void MainWindow::retranslateUi()
         m_tabs->setTabText(0, I18n::tr("Information"));
         m_tabs->setTabText(1, I18n::tr("Output"));
         m_tabs->setTabText(2, I18n::tr("Help"));
+        m_tabs->setTabText(m_tabs->indexOf(m_snapPage), I18n::tr("Snapshots"));
     }
+    if (m_snapTable)
+        m_snapTable->setHorizontalHeaderLabels({I18n::tr("Snapshot"), I18n::tr("Space"),
+                                                I18n::tr("Created")});
     if (m_info)
         m_info->setPlaceholderText(I18n::tr("Select a Boot Environment to see details."));
     if (m_output)
@@ -247,6 +259,8 @@ void MainWindow::setupShortcuts()
     m_actSnapshot->setObjectName(QStringLiteral("actSnapshot"));
     m_actMount->setObjectName(QStringLiteral("actMount"));
     m_actUnmount->setObjectName(QStringLiteral("actUnmount"));
+    m_actCloneSnapshot->setObjectName(QStringLiteral("actCloneSnapshot"));
+    m_actDestroySnapshot->setObjectName(QStringLiteral("actDestroySnapshot"));
     m_actQuit->setShortcut(QKeySequence::Quit);
 
     m_actFocusFilter = new QAction(this);
@@ -260,6 +274,8 @@ void MainWindow::setupShortcuts()
     connect(tab2, &QShortcut::activated, this, &MainWindow::showTabOutput);
     auto *tab3 = new QShortcut(QKeySequence(QStringLiteral("Ctrl+3")), this);
     connect(tab3, &QShortcut::activated, this, &MainWindow::showTabHelp);
+    auto *tab4 = new QShortcut(QKeySequence(QStringLiteral("Ctrl+4")), this);
+    connect(tab4, &QShortcut::activated, this, &MainWindow::showTabSnapshots);
 
     auto *nextTheme = new QShortcut(QKeySequence(QStringLiteral("Ctrl+Shift+T")), this);
     connect(nextTheme, &QShortcut::activated, this, [this]() {
@@ -287,6 +303,7 @@ void MainWindow::focusFilter()
 void MainWindow::showTabInfo() { if (m_tabs) m_tabs->setCurrentIndex(0); }
 void MainWindow::showTabOutput() { if (m_tabs) m_tabs->setCurrentIndex(1); }
 void MainWindow::showTabHelp() { if (m_tabs) m_tabs->setCurrentIndex(2); }
+void MainWindow::showTabSnapshots() { if (m_tabs) m_tabs->setCurrentWidget(m_snapPage); }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
@@ -376,6 +393,32 @@ void MainWindow::setupCentral()
     m_tabs->addTab(help, style()->standardIcon(QStyle::SP_DialogHelpButton),
                    I18n::tr("Help"));
 
+    // Snapshots do BE selecionado (de todos, se não houver um único selecionado).
+    m_snapPage = new QWidget;
+    auto *snapLayout = new QVBoxLayout(m_snapPage);
+    snapLayout->setContentsMargins(0, 0, 0, 0);
+    auto *snapBar = new QToolBar;
+    snapBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    snapBar->setIconSize(QSize(16, 16));
+    snapBar->addAction(m_actSnapshot);
+    snapBar->addAction(m_actCloneSnapshot);
+    snapBar->addAction(m_actDestroySnapshot);
+    m_snapTable = new QTableWidget(0, 3);
+    m_snapTable->setObjectName(QStringLiteral("snapTable"));
+    m_snapTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_snapTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_snapTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_snapTable->setAlternatingRowColors(true);
+    m_snapTable->verticalHeader()->setVisible(false);
+    m_snapTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_snapTable->setHorizontalHeaderLabels({I18n::tr("Snapshot"), I18n::tr("Space"),
+                                            I18n::tr("Created")});
+    connect(m_snapTable, &QTableWidget::itemSelectionChanged, this, &MainWindow::updateActions);
+    snapLayout->addWidget(snapBar);
+    snapLayout->addWidget(m_snapTable);
+    m_tabs->addTab(m_snapPage, style()->standardIcon(QStyle::SP_DialogSaveButton),
+                   I18n::tr("Snapshots"));
+
     auto *split = new QSplitter(Qt::Vertical);
     split->addWidget(m_table);
     split->addWidget(m_tabs);
@@ -401,7 +444,8 @@ void MainWindow::setBusy(bool busy)
     // Toda ação que chama o bectl fica desativada, inclusive pelos atalhos, e
     // também a troca de idioma, que altera o catálogo lido pela operação.
     for (QAction *a : {m_actRefresh, m_actCreate, m_actActivate, m_actActivateTemp, m_actRename,
-                       m_actSnapshot, m_actMount, m_actUnmount, m_actDestroy})
+                       m_actSnapshot, m_actMount, m_actUnmount, m_actDestroy,
+                       m_actCloneSnapshot, m_actDestroySnapshot})
         a->setEnabled(!busy);
     m_langMenu->setEnabled(!busy);
     if (busy) {
@@ -426,6 +470,9 @@ void MainWindow::updateActions()
     // O BE em uso está montado em "/" e não pode ser desmontado.
     m_actUnmount->setEnabled(be && be->isMounted() && !be->isActiveNow());
     m_actDestroy->setEnabled(!names.isEmpty());
+    const bool snap = !selectedSnapshot().isEmpty();
+    m_actCloneSnapshot->setEnabled(snap);
+    m_actDestroySnapshot->setEnabled(snap);
 }
 
 // Executa op numa thread à parte, para a interface continuar respondendo
@@ -471,7 +518,7 @@ void MainWindow::appendOutput(const QString &line)
 {
     const QString ts = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss"));
     m_output->append(QStringLiteral("[%1] %2").arg(ts, line));
-    m_tabs->setCurrentIndex(1);
+    m_tabs->setCurrentWidget(m_output);
 }
 
 void MainWindow::fillTable(const QVector<BootEnvironment> &list)
@@ -529,11 +576,17 @@ void MainWindow::fillTable(const QVector<BootEnvironment> &list)
 void MainWindow::refreshList()
 {
     auto list = std::make_shared<QVector<BootEnvironment>>();
+    auto snaps = std::make_shared<QVector<BeSnapshot>>();
     runAsync(I18n::tr("Listing Boot Environments…"),
-             [this, list]() { *list = m_mgr.listEnvironments(); },
-             [this, list]() {
+             [this, list, snaps]() {
+                 *list = m_mgr.listEnvironments();
+                 *snaps = m_mgr.listSnapshots();
+             },
+             [this, list, snaps]() {
                  m_list = *list;
+                 m_snapshots = *snaps;
                  fillTable(m_list);
+                 fillSnapshots();
                  appendOutput(I18n::tr("List updated (%1 BE(s)).").arg(m_list.size()));
              });
 }
@@ -543,6 +596,7 @@ void MainWindow::onFilterChanged(const QString &)
 }
 void MainWindow::onSelectionChanged()
 {
+    fillSnapshots();
     updateActions();
     const QString name = selectedSingle();
     const BootEnvironment *be = name.isEmpty() ? nullptr : findBe(name);
@@ -550,6 +604,34 @@ void MainWindow::onSelectionChanged()
         showBeInfo(*be);
     else
         m_info->clear();
+}
+
+void MainWindow::fillSnapshots()
+{
+    const QString be = selectedSingle();
+    m_snapTable->setRowCount(0);
+    for (const BeSnapshot &s : m_snapshots) {
+        if (!be.isEmpty() && s.environment() != be)
+            continue;
+        const int row = m_snapTable->rowCount();
+        m_snapTable->insertRow(row);
+        m_snapTable->setItem(row, 0, new QTableWidgetItem(s.name));
+        auto *space = new QTableWidgetItem(s.space);
+        space->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        m_snapTable->setItem(row, 1, space);
+        m_snapTable->setItem(row, 2, new QTableWidgetItem(s.created));
+    }
+    m_tabs->setTabText(m_tabs->indexOf(m_snapPage),
+                       QStringLiteral("%1 (%2)").arg(I18n::tr("Snapshots")).arg(m_snapTable->rowCount()));
+}
+
+QString MainWindow::selectedSnapshot() const
+{
+    const auto rows = m_snapTable->selectionModel()->selectedRows();
+    if (rows.size() != 1)
+        return QString();
+    const auto *it = m_snapTable->item(rows.first().row(), 0);
+    return it ? it->text() : QString();
 }
 
 const BootEnvironment *MainWindow::findBe(const QString &name) const
@@ -860,8 +942,52 @@ void MainWindow::onSnapshot()
     runAsync(I18n::tr("Creating snapshot… (qt-sudo may ask for a password)"),
              [this, full, recursive]() { m_mgr.createSnapshot(full, recursive); },
              [this, full]() {
-                 appendOutput(I18n::tr("OK: snapshot '%1' created. To clone it, use Create with '%1' as the source.")
-                                  .arg(full));
+                 appendOutput(I18n::tr("OK: snapshot '%1' created.").arg(full));
+                 refreshList();
+             });
+}
+
+void MainWindow::onCloneSnapshot()
+{
+    const QString snap = selectedSnapshot();
+    if (snap.isEmpty()) {
+        QMessageBox::information(this, I18n::tr("Selection"), I18n::tr("Select a snapshot."));
+        return;
+    }
+    bool ok = false;
+    const QString name = QInputDialog::getText(this, I18n::tr("Clone snapshot"),
+                                               I18n::tr("New Boot Environment name:"),
+                                               QLineEdit::Normal, QString(), &ok)
+                             .trimmed();
+    if (!ok || name.isEmpty())
+        return;
+    appendOutput(QStringLiteral("bectl create -e %1 %2").arg(snap, name));
+    runAsync(I18n::tr("Cloning… (qt-sudo may ask for a password)"),
+             [this, name, snap]() { m_mgr.create(name, snap); },
+             [this, name, snap]() {
+                 appendOutput(I18n::tr("OK: '%1' created from '%2'.").arg(name, snap));
+                 refreshList();
+             });
+}
+
+void MainWindow::onDestroySnapshot()
+{
+    const QString snap = selectedSnapshot();
+    if (snap.isEmpty()) {
+        QMessageBox::information(this, I18n::tr("Selection"), I18n::tr("Select a snapshot."));
+        return;
+    }
+    if (QMessageBox::warning(this, I18n::tr("Confirm destroy"),
+                             I18n::tr("WARNING: destroying '%1' is irreversible.\nContinue?").arg(snap),
+                             QMessageBox::Yes | QMessageBox::No, QMessageBox::No)
+        != QMessageBox::Yes)
+        return;
+    appendOutput(QStringLiteral("bectl destroy %1").arg(snap));
+    runAsync(I18n::tr("Destroying… (qt-sudo may ask for a password)"),
+             [this, snap]() { m_mgr.destroy(snap); },
+             [this, snap]() {
+                 appendOutput(I18n::tr("OK: snapshot '%1' destroyed.").arg(snap));
+                 refreshList();
              });
 }
 void MainWindow::onAbout()

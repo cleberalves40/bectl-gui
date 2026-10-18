@@ -23,6 +23,17 @@ struct BootEnvironment {
 };
 
 /**
+ * Snapshot de um Boot Environment, como "bectl list -s" o lista.
+ */
+struct BeSnapshot {
+    QString name;        // be@snapshot, como os comandos do bectl o aceitam
+    QString space;
+    QString created;
+
+    QString environment() const { return name.section(QLatin1Char('@'), 0, 0); }
+};
+
+/**
  * Resultado de operações em lote (destroy_many).
  */
 struct DestroyManyResult {
@@ -48,6 +59,7 @@ public:
     QVector<BootEnvironment> listEnvironments(bool scriptFormat = true,
                                               bool showSpace = false);
     std::optional<BootEnvironment> getEnvironment(const QString &name);
+    QVector<BeSnapshot> listSnapshots();
 
     // --- Escrita (via qt-sudo) ---
     QString create(const QString &name,

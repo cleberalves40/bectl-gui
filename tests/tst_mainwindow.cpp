@@ -31,7 +31,8 @@ private:
         QFile f(logPath());
         if (!f.open(QIODevice::ReadOnly))
             return 0;
-        return QString::fromUtf8(f.readAll()).count(QStringLiteral("list -H"));
+        // Uma atualização = "list -H" (BEs) seguido de "list -H -s" (snapshots).
+        return QString::fromUtf8(f.readAll()).split(QLatin1Char('\n')).count(QStringLiteral("list -H"));
     }
 
     static QAction *action(MainWindow &w, const char *name)
@@ -61,7 +62,13 @@ private slots:
         f.write(QStringLiteral(
                     "#!/bin/sh\n"
                     "echo \"$*\" >> '%1'\n"
-                    "if [ \"$1\" = list ]; then\n"
+                    "if [ \"$*\" = 'list -H -s' ]; then\n"
+                    "  printf 'default\\n  zroot/ROOT/default\\tNR\\t/\\t1.2G\\t2026-10-01 10:00\\n'\n"
+                    "  printf '  zroot/ROOT/default@antes\\t-\\t-\\t300M\\t2026-10-04 09:00\\n'\n"
+                    "  printf '  zroot/ROOT/default@depois\\t-\\t-\\t1M\\t2026-10-05 09:00\\n\\n'\n"
+                    "  printf 'be-mounted\\n  zroot/ROOT/be-mounted\\t-\\t/mnt/be\\t10M\\t2026-10-02 11:00\\n'\n"
+                    "  printf '  zroot/ROOT/be-mounted@x\\t-\\t-\\t1K\\t2026-10-06 09:00\\n'\n"
+                    "elif [ \"$1\" = list ]; then\n"
                     "  sleep 1\n"
                     "  printf 'default\\tNR\\t/\\t1.2G\\t2026-10-01 10:00\\n'\n"
                     "  printf 'be-mounted\\t-\\t/mnt/be\\t10M\\t2026-10-02 11:00\\n'\n"
@@ -139,7 +146,8 @@ private slots:
         selectRows(table, {1});
 
         action(w, "actRefresh")->trigger();
-        for (const char *name : {"actRefresh", "actCreate", "actSnapshot", "actUnmount", "actDestroy"})
+        for (const char *name : {"actRefresh", "actCreate", "actSnapshot", "actUnmount", "actDestroy",
+                                 "actCloneSnapshot", "actDestroySnapshot"})
             QVERIFY2(!action(w, name)->isEnabled(), name);
         action(w, "actRefresh")->trigger();   // ignorado: a ação está desativada
         QVERIFY(!w.close());
@@ -147,6 +155,35 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(action(w, "actRefresh")->isEnabled(), 5000);
         QCOMPARE(listCalls(), 2);
         QVERIFY(w.close());
+    }
+
+    void snapshotsFollowSelection()
+    {
+        MainWindow w(nullptr, m_bectl, false);
+        auto *table = w.findChild<QTableWidget *>(QStringLiteral("table"));
+        auto *snaps = w.findChild<QTableWidget *>(QStringLiteral("snapTable"));
+        QTRY_COMPARE_WITH_TIMEOUT(table->rowCount(), 3, 5000);
+
+        selectRows(table, {0});
+        QCOMPARE(snaps->rowCount(), 2);
+        QCOMPARE(snaps->item(0, 0)->text(), QStringLiteral("default@antes"));
+        QCOMPARE(snaps->item(0, 1)->text(), QStringLiteral("300M"));
+        QVERIFY(!action(w, "actCloneSnapshot")->isEnabled());
+        selectRows(snaps, {1});
+        QVERIFY(action(w, "actCloneSnapshot")->isEnabled());
+        QVERIFY(action(w, "actDestroySnapshot")->isEnabled());
+
+        selectRows(table, {1});
+        QCOMPARE(snaps->rowCount(), 1);
+        QCOMPARE(snaps->item(0, 0)->text(), QStringLiteral("be-mounted@x"));
+
+        selectRows(table, {2});   // be-idle: sem snapshots
+        QCOMPARE(snaps->rowCount(), 0);
+        QVERIFY(!action(w, "actDestroySnapshot")->isEnabled());
+
+        selectRows(table, {0, 1});   // mais de um BE: todos os snapshots
+        QCOMPARE(snaps->rowCount(), 3);
+        QCOMPARE(listCalls(), 1);
     }
 
     void unmountRunsBectl()

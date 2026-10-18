@@ -162,6 +162,35 @@ private slots:
                  QStringLiteral("Nombre de Boot Environment no válido: -F"));
     }
 
+    // Formato de sbin/bectl/bectl_list.c com -H -s: BE sem recuo; dataset e
+    // snapshots com dois espaços; origem de clone com quatro.
+    void parsesSnapshotList()
+    {
+        const QString path = m_dir.filePath(QStringLiteral("bectl-snapshots"));
+        QFile f(path);
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write("#!/bin/sh\n"
+                "printf 'default\\n'\n"
+                "printf '  zroot/ROOT/default\\tNR\\t/\\t1.2G\\t2026-10-01 10:00\\n'\n"
+                "printf '  zroot/ROOT/default@antes-upgrade\\t-\\t-\\t300M\\t2026-10-05 09:30\\n'\n"
+                "printf '  zroot/ROOT/default@2026-10-10-08:00:00-0\\t-\\t-\\t12K\\t2026-10-10 08:00\\n'\n"
+                "printf '\\n'\n"
+                "printf 'be-clone\\n'\n"
+                "printf '  zroot/ROOT/be-clone\\t-\\t-\\t8K\\t2026-10-10 08:00\\n'\n"
+                "printf '    zroot/ROOT/default@2026-10-10-08:00:00-0\\t-\\t-\\t12K\\t2026-10-10 08:00\\n'\n");
+        f.close();
+        f.setPermissions(f.permissions() | QFileDevice::ExeOwner);
+
+        BectlManager mgr(false, QString(), path);
+        const QVector<BeSnapshot> snaps = mgr.listSnapshots();
+        QCOMPARE(snaps.size(), 2);
+        QCOMPARE(snaps[0].name, QStringLiteral("default@antes-upgrade"));
+        QCOMPARE(snaps[0].environment(), QStringLiteral("default"));
+        QCOMPARE(snaps[0].space, QStringLiteral("300M"));
+        QCOMPARE(snaps[0].created, QStringLiteral("2026-10-05 09:30"));
+        QCOMPARE(snaps[1].name, QStringLiteral("default@2026-10-10-08:00:00-0"));
+    }
+
     void missingQtSudoIsReported()
     {
         BectlManager mgr(true, QStringLiteral("qt-sudo-que-nao-existe"), fakeBectl(0));
