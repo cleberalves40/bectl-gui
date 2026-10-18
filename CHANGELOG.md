@@ -108,6 +108,8 @@ com tags no formato `vX.Y.Z`.
 - Temas, tradução (en_US, pt_BR, es_ES), compilação por CMake e QMake, modelo
   de port do FreeBSD e CI no GitHub Actions (Ubuntu e FreeBSD amd64).
 
+[0.3.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/cleberalves40/bectl-gui/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/cleberalves40/bectl-gui/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/cleberalves40/bectl-gui/compare/v0.1.0...v0.1.1
