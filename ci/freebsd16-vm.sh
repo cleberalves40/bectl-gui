@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Homologação no FreeBSD 16.0-CURRENT: nenhuma action de CI oferece essa
 # versão, então este script dá boot na imagem oficial de snapshot no QEMU e
@@ -59,20 +59,26 @@ nc -l 127.0.0.1 9000 >"$work/result.log" &
 listener=$!
 trap 'kill $http $listener 2>/dev/null || true' EXIT
 
-common="-m 6G -smp 4 -nographic -serial file:$work/console.log -monitor none
+# O nuageinit acha a configuração pelo rótulo "cidata" do sistema de arquivos;
+# o ISO entra como um disco virtio comum.
+common="-m 6G -smp 4 -display none -serial file:$work/console.log -monitor none
 	-drive file=$work/$img,if=virtio,format=qcow2
-	-drive file=$work/seed.iso,if=virtio,format=raw,media=cdrom
+	-drive file=$work/seed.iso,if=virtio,format=raw,readonly=on
 	-nic user,model=virtio-net-pci"
 echo "== boot do FreeBSD 16.0-CURRENT/$arch"
 case $arch in
 amd64)
 	# shellcheck disable=SC2086
-	timeout 100m qemu-system-x86_64 -accel kvm -accel tcg -cpu max $common ;;
+	timeout 100m qemu-system-x86_64 -accel kvm -accel tcg -cpu max $common || echo "== qemu terminou com status $?" ;;
 aarch64)
 	# shellcheck disable=SC2086
-	timeout 150m qemu-system-aarch64 -M virt -cpu max -bios /usr/share/qemu-efi-aarch64/QEMU_EFI.fd $common ;;
+	timeout 150m qemu-system-aarch64 -M virt -cpu max -bios /usr/share/qemu-efi-aarch64/QEMU_EFI.fd $common || echo "== qemu terminou com status $?" ;;
 esac
 
-wait $listener 2>/dev/null || true
+# O resultado chega antes do desligamento; se a VM nunca conectou, o listener
+# ainda espera e é encerrado aqui.
+sleep 2
+kill $listener 2>/dev/null || true
+echo "== resultado"
 cat "$work/result.log"
 grep -q '^BECTL-CI-RESULT=0$' "$work/result.log"
