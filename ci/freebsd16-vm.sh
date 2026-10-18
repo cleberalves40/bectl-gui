@@ -15,17 +15,24 @@ work=${RUNNER_TEMP:-/tmp}/fbsd16-$arch
 mkdir -p "$work/serve"
 
 case $arch in
-amd64)   dir=amd64/amd64;   img=FreeBSD-16.0-CURRENT-amd64-BASIC-CLOUDINIT-ufs.qcow2 ;;
-aarch64) dir=arm64/aarch64; img=FreeBSD-16.0-CURRENT-arm64-aarch64-BASIC-CLOUDINIT-ufs.qcow2 ;;
+amd64)   prefix=FreeBSD-16.0-CURRENT-amd64-BASIC-CLOUDINIT- ;;
+aarch64) prefix=FreeBSD-16.0-CURRENT-arm64-aarch64-BASIC-CLOUDINIT- ;;
 *) echo "arquitetura desconhecida: $arch" >&2; exit 2 ;;
 esac
-base=https://download.freebsd.org/snapshots/VM-IMAGES/16.0-CURRENT/${dir#*/}/Latest
+base=https://download.freebsd.org/snapshots/VM-IMAGES/16.0-CURRENT/$arch
 
-echo "== imagem: $base/$img.xz"
-curl -fsSL "$base/CHECKSUM.SHA256" | grep "($img.xz)" > "$work/CHECKSUM"
-curl -fsSL -o "$work/$img.xz" "$base/$img.xz"
-(cd "$work" && sha256sum -c --ignore-missing <(sed -E 's/^SHA256 \((.*)\) = (.*)$/\2  \1/' CHECKSUM))
-xz -d -f "$work/$img.xz"
+# O CHECKSUM de Latest/ lista o snapshot pelo nome completo
+# (<prefixo><data>-<commit>-<revisão>-ufs.qcow2.xz), que fica no diretório
+# da data; o nome identifica exatamente o que foi testado.
+line=$(curl -fsSL "$base/Latest/CHECKSUM.SHA256" | grep -E "^SHA256 \(${prefix}[0-9]+-[0-9a-f]+-[0-9]+-ufs\.qcow2\.xz\)")
+xzfile=$(echo "$line" | sed -E 's/^SHA256 \((.*)\) = .*$/\1/')
+sum=$(echo "$line" | sed -E 's/^.* = ([0-9a-f]+)$/\1/')
+date=$(echo "$xzfile" | sed -E "s/^${prefix}([0-9]+)-.*/\1/")
+img=${xzfile%.xz}
+echo "== snapshot: $xzfile"
+curl -fsSL -o "$work/$xzfile" "$base/$date/$xzfile"
+echo "$sum  $work/$xzfile" | sha256sum -c
+xz -d -f "$work/$xzfile"
 qemu-img resize -q "$work/$img" +20G
 
 # Código da tag, servido à VM pela rede de usuário do QEMU (host = 10.0.2.2).
