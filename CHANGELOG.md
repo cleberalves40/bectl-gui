@@ -7,8 +7,19 @@ com tags no formato `vX.Y.Z`.
 
 ## [0.2.1] - 2026-10-17
 
+### Corrigido
+- Port: o binário liga com `libGLX` e `libOpenGL` (de `graphics/libglvnd`, por
+  meio do Qt6 Gui), mas o port não as declarava; o `stage-qa` acusava erro.
+  Adicionado `USES=gl` com `USE_GL=gl opengl`.
+- Port: removida a dependência de build `qt6-tools` (`USE_QT=tools:build`), que
+  o projeto não usa e que trazia `qt6-declarative` e outras à toa. README e
+  `CMakeLists.txt` deixam de pedir sua instalação.
+
 ### Adicionado
-- Validação do port com o framework de ports nos quatro jobs FreeBSD Tier 1.
+- `ci/freebsd-port.sh`: validação do port com o framework de ports nos quatro
+  jobs FreeBSD Tier 1 — `portlint`, build, `stage-qa` (com `DEVELOPER=yes`),
+  `check-plist`, geração e instalação do pacote e inicialização do binário
+  instalado. O distfile é gerado do commit em teste.
 
 ## [0.2.0] - 2026-10-17
 
