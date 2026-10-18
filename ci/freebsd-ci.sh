@@ -7,7 +7,7 @@ set -eu
 
 echo "== $(uname -srm), $(sysctl -n hw.ncpu) CPU(s), $(($(sysctl -n hw.physmem) / 1048576)) MB"
 
-pkg install -y cmake ninja qt6-base qt6-tools >/dev/null
+pkg install -y cmake ninja qt6-base >/dev/null
 
 echo "== toolchain"
 c++ --version | head -1

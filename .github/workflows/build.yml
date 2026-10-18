@@ -55,8 +55,9 @@ jobs:
 
   # Arquiteturas Tier 1 do FreeBSD (amd64 e aarch64) nas releases mais novas
   # das séries suportadas. Cada job compila com o Clang do sistema e os
-  # pacotes Qt6 e executa tests/freebsd-e2e.sh contra o bectl(8) real
-  # (veja ci/freebsd-ci.sh e docs/ARCHITECTURES.md).
+  # pacotes Qt6, executa tests/freebsd-e2e.sh contra o bectl(8) real e
+  # valida o port com o framework de ports (veja ci/freebsd-ci.sh,
+  # ci/freebsd-port.sh e docs/ARCHITECTURES.md).
   freebsd:
     name: FreeBSD ${{ matrix.release }} / ${{ matrix.label }}
     runs-on: ubuntu-latest
@@ -79,4 +80,4 @@ jobs:
       with:
         release: ${{ matrix.release }}
         arch: ${{ matrix.arch }}
-        run: sh ci/freebsd-ci.sh
+        run: sh ci/freebsd-ci.sh && sh ci/freebsd-port.sh

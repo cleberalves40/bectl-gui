@@ -1,6 +1,6 @@
 PORTNAME=	bectl-gui
 DISTVERSIONPREFIX=	v
-DISTVERSION=	0.2.0
+DISTVERSION=	0.2.1
 CATEGORIES=	sysutils
 
 MAINTAINER=	cleberalves40@github.com
@@ -12,8 +12,9 @@ LICENSE_FILE=	${WRKSRC}/LICENSE
 
 RUN_DEPENDS=	qt-sudo:security/qt-sudo
 
-USES=		cmake compiler:c++17-lang qt:6
-USE_QT=		base tools:build
+USES=		cmake compiler:c++17-lang gl qt:6
+USE_GL=		gl opengl
+USE_QT=		base
 USE_GITHUB=	yes
 GH_ACCOUNT=	cleberalves40
 

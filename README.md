@@ -89,7 +89,7 @@ No **FreeBSD**:
 pkg install cmake ninja
 
 # Qt6
-pkg install qt6-base qt6-tools
+pkg install qt6-base
 
 # Elevação de privilégios com interface gráfica
 pkg install qt-sudo

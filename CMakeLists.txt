@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(bectl_gui VERSION 0.2.0 LANGUAGES CXX)
+project(bectl_gui VERSION 0.2.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Qt6 (FreeBSD: pkg install qt6-base qt6-tools)
+# Qt6 (FreeBSD: pkg install qt6-base)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
 
 # Lógica de integração com o bectl(8) e tradução, compartilhadas pela GUI e
