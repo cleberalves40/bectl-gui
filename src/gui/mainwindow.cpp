@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "preferencesdialog.h"
 #include "themes.h"
 #include "i18n.h"
 #include <QCloseEvent>
@@ -25,6 +26,7 @@
 #include <QDateTime>
 #include <QMenuBar>
 #include <QKeySequence>
+#include <QSettings>
 #include <QSizePolicy>
 
 MainWindow::MainWindow(QWidget *parent, const QString &bectlPath, bool useQtSudo)
@@ -34,6 +36,22 @@ MainWindow::MainWindow(QWidget *parent, const QString &bectlPath, bool useQtSudo
     setWindowTitle(QStringLiteral("bectl — Boot Environment Manager"));
     setMinimumSize(960, 600);
     resize(1040, 680);
+
+    // O que "system" restaura: o estilo e a paleta do ambiente gráfico,
+    // guardados uma vez por processo, antes que qualquer tema os troque
+    // (uma janela criada depois já os encontraria alterados).
+    static const QString systemStyle = QApplication::style()->name();
+    static const QPalette systemPalette = QApplication::palette();
+    m_systemStyle = systemStyle;
+    m_systemPalette = systemPalette;
+
+    const QSettings settings;
+    m_themeId = settings.value(QStringLiteral("ui/theme"), QStringLiteral("system")).toString();
+    if (!themeIds().contains(m_themeId))
+        m_themeId = QStringLiteral("system");
+    m_language = settings.value(QStringLiteral("ui/language"), QStringLiteral("system")).toString();
+    if (m_language != QLatin1String("system"))
+        I18n::setLocale(m_language);
 
     setupMenus();
     setupToolbar();
@@ -65,19 +83,51 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::applyTheme(const QString &id)
 {
-    m_themeId = id.isEmpty() ? QStringLiteral("octopkg") : id;
-    qApp->setStyle(QStringLiteral("Fusion"));
-    setStyleSheet(themeStyleSheet(m_themeId));
+    m_themeId = themeIds().contains(id) ? id : QStringLiteral("system");
+    if (m_themeId == QLatin1String("system")) {
+        // Sem folha de estilo: valem o estilo e a paleta do ambiente gráfico
+        // (por exemplo, um tema do qt6ct). Só os restaura se outro tema os trocou.
+        setStyleSheet(QString());
+        if (QApplication::style()->name() != m_systemStyle) {
+            qApp->setStyle(m_systemStyle);
+            qApp->setPalette(m_systemPalette);
+        }
+    } else {
+        qApp->setStyle(QStringLiteral("Fusion"));
+        setStyleSheet(themeStyleSheet(m_themeId));
+    }
     if (m_statusLabel)
         m_statusLabel->setText(I18n::tr("Theme: %1").arg(themeLabel(m_themeId)));
     /* recolor table rows */
     fillTable(m_list);
 }
 
-void MainWindow::onThemeTriggered(QAction *act)
+void MainWindow::applyLanguage(const QString &language)
 {
-    if (!act) return;
-    applyTheme(act->data().toString());
+    m_language = language;
+    if (language == QLatin1String("system"))
+        I18n::initFromSystem();
+    else
+        I18n::setLocale(language);
+    retranslateUi();
+    applyTheme(m_themeId);   // o rótulo do tema na barra de status também é traduzido
+}
+
+void MainWindow::applyPreferences(const QString &theme, const QString &language)
+{
+    if (language != m_language)
+        applyLanguage(language);
+    applyTheme(theme);
+    QSettings settings;
+    settings.setValue(QStringLiteral("ui/theme"), m_themeId);
+    settings.setValue(QStringLiteral("ui/language"), m_language);
+}
+
+void MainWindow::onPreferences()
+{
+    PreferencesDialog dlg(m_themeId, m_language, this);
+    if (dlg.exec() == QDialog::Accepted)
+        applyPreferences(dlg.theme(), dlg.language());
 }
 
 void MainWindow::setupMenus()
@@ -85,6 +135,11 @@ void MainWindow::setupMenus()
     m_fileMenu = menuBar()->addMenu(QStringLiteral("&File"));
     m_actQuit = m_fileMenu->addAction(style()->standardIcon(QStyle::SP_DialogCloseButton),
                                       QStringLiteral("&Quit"), this, &QWidget::close);
+
+    m_editMenu = menuBar()->addMenu(QStringLiteral("&Edit"));
+    m_actPreferences = m_editMenu->addAction(QStringLiteral("&Preferences…"), this,
+                                             &MainWindow::onPreferences);
+    m_actPreferences->setMenuRole(QAction::PreferencesRole);
 
     m_actMenu = menuBar()->addMenu(QStringLiteral("&Actions"));
     m_actRefresh = m_actMenu->addAction(style()->standardIcon(QStyle::SP_BrowserReload),
@@ -114,32 +169,6 @@ void MainWindow::setupMenus()
     m_actDestroy = m_actMenu->addAction(style()->standardIcon(QStyle::SP_TrashIcon),
                                         QStringLiteral("&Destroy selected"), this, &MainWindow::onDestroy);
 
-    m_themeMenu = menuBar()->addMenu(QStringLiteral("&Theme"));
-    m_themeGroup = new QActionGroup(this);
-    m_themeGroup->setExclusive(true);
-    for (const QString &tid : themeIds()) {
-        auto *a = m_themeMenu->addAction(themeLabel(tid));
-        a->setCheckable(true);
-        a->setData(tid);
-        m_themeGroup->addAction(a);
-        if (tid == m_themeId)
-            a->setChecked(true);
-    }
-    connect(m_themeGroup, &QActionGroup::triggered, this, &MainWindow::onThemeTriggered);
-
-    m_langMenu = menuBar()->addMenu(QStringLiteral("Language"));
-    m_langGroup = new QActionGroup(this);
-    m_langGroup->setExclusive(true);
-    for (const QString &loc : I18n::availableLocales()) {
-        auto *a = m_langMenu->addAction(I18n::localeDisplayName(loc));
-        a->setCheckable(true);
-        a->setData(loc);
-        m_langGroup->addAction(a);
-        if (loc == I18n::locale())
-            a->setChecked(true);
-    }
-    connect(m_langGroup, &QActionGroup::triggered, this, &MainWindow::onLanguageTriggered);
-
     m_helpMenu = menuBar()->addMenu(QStringLiteral("&Help"));
     m_actAbout = m_helpMenu->addAction(QStringLiteral("About bectl…"), this, &MainWindow::onAbout);
     m_actShortcuts = m_helpMenu->addAction(QStringLiteral("Keyboard shortcuts"), this, [this]() {
@@ -156,6 +185,7 @@ void MainWindow::setupMenus()
             {"Ctrl+F", "Focus filter"},
             {"Ctrl+1 / 2 / 3", "Tabs: Information / Output / Help"},
             {"Ctrl+4", "Snapshots tab"},
+            {"Ctrl+,", "Preferences"},
             {"Ctrl+Shift+T", "Next theme"},
             {"Ctrl+Q", "Quit"},
         };
@@ -168,21 +198,13 @@ void MainWindow::setupMenus()
     });
 }
 
-void MainWindow::onLanguageTriggered(QAction *act)
-{
-    if (!act) return;
-    I18n::setLocale(act->data().toString());
-    retranslateUi();
-    fillTable(m_list);
-}
-
 void MainWindow::retranslateUi()
 {
     setWindowTitle(I18n::tr("bectl — Boot Environment Manager"));
     if (m_fileMenu) m_fileMenu->setTitle(I18n::tr("&File"));
     if (m_actMenu) m_actMenu->setTitle(I18n::tr("&Actions"));
-    if (m_themeMenu) m_themeMenu->setTitle(I18n::tr("&Theme"));
-    if (m_langMenu) m_langMenu->setTitle(I18n::tr("Language"));
+    if (m_editMenu) m_editMenu->setTitle(I18n::tr("&Edit"));
+    if (m_actPreferences) m_actPreferences->setText(I18n::tr("&Preferences…"));
     if (m_helpMenu) m_helpMenu->setTitle(I18n::tr("&Help"));
 
     if (m_actQuit) m_actQuit->setText(I18n::tr("&Quit"));
@@ -234,11 +256,6 @@ void MainWindow::retranslateUi()
     if (m_toolbar)
         m_toolbar->setWindowTitle(I18n::tr("Main"));
 
-    /* refresh language menu labels */
-    if (m_langGroup) {
-        for (QAction *a : m_langGroup->actions())
-            a->setText(I18n::localeDisplayName(a->data().toString()));
-    }
 }
 
 void MainWindow::setupShortcuts()
@@ -267,6 +284,8 @@ void MainWindow::setupShortcuts()
     m_actCloneSnapshot->setObjectName(QStringLiteral("actCloneSnapshot"));
     m_actDestroySnapshot->setObjectName(QStringLiteral("actDestroySnapshot"));
     m_actQuit->setShortcut(QKeySequence::Quit);
+    m_actPreferences->setShortcut(QKeySequence(QStringLiteral("Ctrl+,")));
+    m_actPreferences->setObjectName(QStringLiteral("actPreferences"));
 
     m_actFocusFilter = new QAction(this);
     m_actFocusFilter->setShortcut(QKeySequence(QStringLiteral("Ctrl+F")));
@@ -287,13 +306,7 @@ void MainWindow::setupShortcuts()
         const QStringList ids = themeIds();
         int i = ids.indexOf(m_themeId);
         i = (i + 1) % ids.size();
-        applyTheme(ids[i]);
-        for (QAction *a : m_themeGroup->actions()) {
-            if (a->data().toString() == m_themeId) {
-                a->setChecked(true);
-                break;
-            }
-        }
+        applyPreferences(ids[i], m_language);
     });
 }
 
@@ -447,12 +460,13 @@ void MainWindow::setupStatus()
 void MainWindow::setBusy(bool busy)
 {
     // Toda ação que chama o bectl fica desativada, inclusive pelos atalhos, e
-    // também a troca de idioma, que altera o catálogo lido pela operação.
+    // também as preferências, cuja troca de idioma altera o catálogo lido pela
+    // operação.
     for (QAction *a : {m_actRefresh, m_actCreate, m_actActivate, m_actActivateTemp, m_actRename,
                        m_actSnapshot, m_actMount, m_actUnmount, m_actDestroy,
                        m_actCloneSnapshot, m_actDestroySnapshot})
         a->setEnabled(!busy);
-    m_langMenu->setEnabled(!busy);
+    m_actPreferences->setEnabled(!busy);
     if (busy) {
         QApplication::setOverrideCursor(Qt::BusyCursor);
     } else {
@@ -556,7 +570,8 @@ void MainWindow::fillTable(const QVector<BootEnvironment> &list)
 
         auto *nameItem = new QTableWidgetItem(be.name);
         QString okFg, warnFg;
-        themeRowColors(m_themeId, &okFg, &warnFg);
+        themeRowColors(m_themeId, &okFg, &warnFg,
+                   palette().color(QPalette::Base).lightness() < 128);
         if (be.isActiveNow()) {
             nameItem->setForeground(QColor(okFg));
             QFont f = nameItem->font();
@@ -650,7 +665,8 @@ const BootEnvironment *MainWindow::findBe(const QString &name) const
 void MainWindow::showBeInfo(const BootEnvironment &be)
 {
     QString okFg, warnFg;
-    themeRowColors(m_themeId, &okFg, &warnFg);
+    themeRowColors(m_themeId, &okFg, &warnFg,
+                   palette().color(QPalette::Base).lightness() < 128);
 
     QString html;
     html += QStringLiteral("<h3>%1</h3>").arg(be.name.toHtmlEscaped());

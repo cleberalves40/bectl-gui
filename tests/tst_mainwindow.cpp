@@ -4,13 +4,19 @@
 // acompanham a seleção e o estado de ocupado.
 
 #include "mainwindow.h"
+#include "preferencesdialog.h"
 #include "i18n.h"
 
 #include <QAction>
 #include <QApplication>
 #include <QFile>
 #include <QLabel>
+#include <QComboBox>
 #include <QLineEdit>
+#include <QMenuBar>
+#include <QSettings>
+#include <QStandardPaths>
+#include <QStyle>
 #include <QTableWidget>
 #include <QTemporaryDir>
 #include <QtTest>
@@ -79,7 +85,92 @@ private slots:
         f.setPermissions(f.permissions() | QFileDevice::ExeOwner);
     }
 
-    void init() { QFile::remove(logPath()); }
+    void init()
+    {
+        QFile::remove(logPath());
+        QSettings().clear();
+        I18n::setLocale(QStringLiteral("en_US"));
+    }
+
+    static QStringList menuTitles(MainWindow &w)
+    {
+        QStringList titles;
+        for (QAction *a : w.menuBar()->actions())
+            titles << a->text();
+        return titles;
+    }
+
+    // Sem preferência salva, o tema é o do ambiente gráfico: nenhuma folha de
+    // estilo e o estilo/paleta da aplicação intocados.
+    void defaultFollowsSystemTheme()
+    {
+        const QString style = QApplication::style()->name();
+        const QPalette palette = QApplication::palette();
+        MainWindow w(nullptr, m_bectl, false);
+        QVERIFY(w.styleSheet().isEmpty());
+        QCOMPARE(QApplication::style()->name(), style);
+        QVERIFY(QApplication::palette() == palette);
+        QTRY_VERIFY_WITH_TIMEOUT(action(w, "actRefresh")->isEnabled(), 5000);
+    }
+
+    // Tema e idioma saíram dos menus de primeiro nível para Editar › Preferências.
+    void preferencesLiveInEditMenu()
+    {
+        MainWindow w(nullptr, m_bectl, false);
+        const QStringList titles = menuTitles(w);
+        QCOMPARE(titles, QStringList({QStringLiteral("&File"), QStringLiteral("&Edit"),
+                                      QStringLiteral("&Actions"), QStringLiteral("&Help")}));
+        QCOMPARE(action(w, "actPreferences")->shortcut(), QKeySequence(QStringLiteral("Ctrl+,")));
+        QTRY_VERIFY_WITH_TIMEOUT(action(w, "actRefresh")->isEnabled(), 5000);
+    }
+
+    void preferencesDialogPreselectsCurrent()
+    {
+        PreferencesDialog dlg(QStringLiteral("frappe"), QStringLiteral("pt_BR"));
+        auto *theme = dlg.findChild<QComboBox *>(QStringLiteral("themeCombo"));
+        auto *lang = dlg.findChild<QComboBox *>(QStringLiteral("languageCombo"));
+        QCOMPARE(theme->itemData(0).toString(), QStringLiteral("system"));
+        QCOMPARE(lang->itemData(0).toString(), QStringLiteral("system"));
+        QCOMPARE(dlg.theme(), QStringLiteral("frappe"));
+        QCOMPARE(dlg.language(), QStringLiteral("pt_BR"));
+        QCOMPARE(theme->currentText(), QStringLiteral("Catppuccin Frappé"));
+    }
+
+    // Aplicar salva as preferências; uma nova janela as recupera; voltar a
+    // "system" restaura o estilo e a paleta do ambiente gráfico.
+    void preferencesApplyPersistAndRestore()
+    {
+        const QString style = QApplication::style()->name();
+        const QPalette palette = QApplication::palette();
+        {
+            MainWindow w(nullptr, m_bectl, false);
+            QTRY_VERIFY_WITH_TIMEOUT(action(w, "actRefresh")->isEnabled(), 5000);
+            w.applyPreferences(QStringLiteral("frappe"), QStringLiteral("pt_BR"));
+            QVERIFY(!w.styleSheet().isEmpty());
+            QVERIFY(menuTitles(w).contains(QStringLiteral("&Editar")));
+        }
+        QCOMPARE(QSettings().value(QStringLiteral("ui/theme")).toString(), QStringLiteral("frappe"));
+        QCOMPARE(QSettings().value(QStringLiteral("ui/language")).toString(), QStringLiteral("pt_BR"));
+
+        I18n::setLocale(QStringLiteral("en_US"));
+        MainWindow w(nullptr, m_bectl, false);
+        QVERIFY(!w.styleSheet().isEmpty());
+        QCOMPARE(I18n::locale(), QStringLiteral("pt_BR"));
+        QTRY_VERIFY_WITH_TIMEOUT(action(w, "actRefresh")->isEnabled(), 5000);
+
+        w.applyPreferences(QStringLiteral("system"), QStringLiteral("en_US"));
+        QVERIFY(w.styleSheet().isEmpty());
+        QCOMPARE(QApplication::style()->name(), style);
+        QVERIFY(QApplication::palette() == palette);
+        QVERIFY(menuTitles(w).contains(QStringLiteral("&Edit")));
+    }
+
+    void preferencesDisabledWhileBusy()
+    {
+        MainWindow w(nullptr, m_bectl, false);
+        QVERIFY(!action(w, "actPreferences")->isEnabled());
+        QTRY_VERIFY_WITH_TIMEOUT(action(w, "actPreferences")->isEnabled(), 5000);
+    }
 
     void staysResponsiveWhileListing()
     {
@@ -206,7 +297,10 @@ int main(int argc, char **argv)
 {
     if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM"))
         qputenv("QT_QPA_PLATFORM", "offscreen");
+    // As preferências gravadas pelo teste não podem tocar nas do usuário.
+    QStandardPaths::setTestModeEnabled(true);
     QApplication app(argc, argv);
+    QApplication::setOrganizationName(QStringLiteral("bectl-gui-tests"));
     TestMainWindow t;
     return QTest::qExec(&t, argc, argv);
 }

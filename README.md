@@ -86,8 +86,8 @@ qt-sudo bectl destroy -F nome-do-be
 - **Interface responsiva**: As operações rodam em segundo plano; a janela continua respondendo enquanto o `bectl` executa e o `qt-sudo` pede a senha.
 - **Destruição em lote**: Selecione múltiplos BEs com `Ctrl+Clique` ou `Shift+Clique`.
 - **Proteção ativa**: Impede acidentes bloqueando a exclusão do Boot Environment ativo no momento.
-- **Multilíngue**: Suporte a Inglês, Português (Brasil) e Espanhol com detecção automática do sistema ou seleção manual.
-- **Temas integrados**: Paleta OctoPKG padrão, Catppuccin (Frappé, Latte, Mocha, Macchiato), Solarized, Selenized, Dracula, Tokyo Night, Nord, Gruvbox e One Dark.
+- **Multilíngue**: Suporte a Inglês, Português (Brasil) e Espanhol, seguindo o idioma do sistema ou escolhido em **Editar › Preferências**.
+- **Temas**: Por padrão, segue o tema Qt6 do ambiente gráfico (por exemplo, o configurado no qt6ct). Em **Editar › Preferências** há também temas embutidos: OctoPKG, Catppuccin (Frappé, Latte, Mocha, Macchiato), Solarized, Selenized, Dracula, Tokyo Night, Nord, Gruvbox e One Dark. Tema e idioma escolhidos são lembrados.
 
 ---
 
@@ -186,6 +186,7 @@ do port ao FreeBSD em [docs/RELEASING.md](docs/RELEASING.md).
 | <kbd>Ctrl+U</kbd> | Desmontar BE selecionado |
 | <kbd>Delete</kbd> | Destruir BE(s) selecionado(s) |
 | <kbd>Ctrl+F</kbd> | Focar no campo de busca/filtro |
+| <kbd>Ctrl+,</kbd> | Preferências (tema e idioma) |
 | <kbd>Ctrl+Shift+T</kbd> | Alternar para o próximo tema |
 | <kbd>Ctrl+1 / 2 / 3</kbd> | Alternar abas (Info / Saída / Ajuda) |
 | <kbd>Ctrl+4</kbd> | Aba Snapshots |
