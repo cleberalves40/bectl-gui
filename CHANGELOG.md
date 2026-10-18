@@ -5,6 +5,22 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o projeto usa [versionamento semântico](https://semver.org/lang/pt-BR/),
 com tags no formato `vX.Y.Z`.
 
+## [1.1.1] - 2026-10-18
+
+### Corrigido
+- **Criar snapshot** aparecia em três lugares: menu Ações, barra principal e
+  barra da aba Snapshots. Sai da barra principal; continua no menu e na aba,
+  junto de Clonar e Destruir snapshot.
+- No menu **Ações**, Criar snapshot ficava junto de Renomear, longe de Clonar e
+  Destruir snapshot; as três formam agora um grupo.
+- O atalho de **Atualizar** era definido duas vezes seguidas (`F5` e, em
+  seguida, `QKeySequence::Refresh` + `Ctrl+R`, que variava conforme o ambiente
+  gráfico). Agora é definido uma vez: `F5` e `Ctrl+R`.
+
+### Adicionado
+- `tst_mainwindow`: verifica a composição da barra principal e do grupo de
+  snapshots no menu Ações, e que nenhum atalho de teclado dispara duas ações.
+
 ## [1.1.0] - 2026-10-18
 
 ### Adicionado
@@ -159,6 +175,7 @@ snapshots e port validado. O detalhamento está nas versões abaixo.
 - Temas, tradução (en_US, pt_BR, es_ES), compilação por CMake e QMake, modelo
   de port do FreeBSD e CI no GitHub Actions (Ubuntu e FreeBSD amd64).
 
+[1.1.1]: https://github.com/cleberalves40/bectl-gui/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/cleberalves40/bectl-gui/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.2.1...v0.3.0

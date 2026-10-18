@@ -12,6 +12,8 @@
 #include <QFile>
 #include <QLabel>
 #include <QComboBox>
+#include <QShortcut>
+#include <QToolBar>
 #include <QLineEdit>
 #include <QMenuBar>
 #include <QSettings>
@@ -163,6 +165,61 @@ private slots:
         QCOMPARE(QApplication::style()->name(), style);
         QVERIFY(QApplication::palette() == palette);
         QVERIFY(menuTitles(w).contains(QStringLiteral("&Edit")));
+    }
+
+    // Cada ação aparece uma vez na barra principal; as de snapshot ficam só na
+    // barra da aba Snapshots (e no menu Ações, agrupadas).
+    void toolbarsAndMenusHaveNoDuplicates()
+    {
+        MainWindow w(nullptr, m_bectl, false);
+        auto *main = w.findChild<QToolBar *>(QStringLiteral("mainToolbar"));
+        QStringList names;
+        for (QAction *a : main->actions())
+            if (!a->objectName().isEmpty())
+                names << a->objectName();
+        QCOMPARE(names, QStringList({QStringLiteral("actRefresh"), QStringLiteral("actCreate"),
+                                     QStringLiteral("actActivate"), QStringLiteral("actActivateTemp"),
+                                     QStringLiteral("actRename"), QStringLiteral("actMount"),
+                                     QStringLiteral("actUnmount"), QStringLiteral("actDestroy")}));
+
+        QMenu *actions = nullptr;
+        for (QAction *m : w.menuBar()->actions())
+            if (m->text() == QLatin1String("&Actions"))
+                actions = m->menu();
+        QVERIFY(actions);
+        QStringList menu;
+        for (QAction *a : actions->actions())
+            menu << (a->isSeparator() ? QStringLiteral("|") : a->objectName());
+        const int snap = menu.indexOf(QStringLiteral("actSnapshot"));
+        QCOMPARE(menu.mid(snap - 1, 4), QStringList({QStringLiteral("|"), QStringLiteral("actSnapshot"),
+                                                     QStringLiteral("actCloneSnapshot"),
+                                                     QStringLiteral("actDestroySnapshot")}));
+        QCOMPARE(menu.count(QStringLiteral("actSnapshot")), 1);
+        QTRY_VERIFY_WITH_TIMEOUT(action(w, "actRefresh")->isEnabled(), 5000);
+    }
+
+    // Nenhum atalho de teclado pode disparar duas ações.
+    void shortcutsAreUnique()
+    {
+        MainWindow w(nullptr, m_bectl, false);
+        QHash<QString, QString> owner;
+        for (QAction *a : w.findChildren<QAction *>()) {
+            for (const QKeySequence &k : a->shortcuts()) {
+                const QString key = k.toString(QKeySequence::PortableText);
+                QVERIFY2(!owner.contains(key),
+                         qPrintable(QStringLiteral("%1: %2 e %3").arg(key, owner.value(key), a->text())));
+                owner.insert(key, a->text());
+            }
+        }
+        for (QShortcut *s : w.findChildren<QShortcut *>()) {
+            const QString key = s->key().toString(QKeySequence::PortableText);
+            QVERIFY2(!owner.contains(key), qPrintable(QStringLiteral("%1: %2 e QShortcut").arg(key, owner.value(key))));
+            owner.insert(key, QStringLiteral("QShortcut"));
+        }
+        QVERIFY(owner.contains(QStringLiteral("Ctrl+4")));
+        QCOMPARE(action(w, "actRefresh")->shortcuts(),
+                 QList<QKeySequence>({QKeySequence(QStringLiteral("F5")), QKeySequence(QStringLiteral("Ctrl+R"))}));
+        QTRY_VERIFY_WITH_TIMEOUT(action(w, "actRefresh")->isEnabled(), 5000);
     }
 
     void preferencesDisabledWhileBusy()

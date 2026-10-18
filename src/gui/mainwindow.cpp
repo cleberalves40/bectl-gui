@@ -153,14 +153,15 @@ void MainWindow::setupMenus()
                                              QStringLiteral("Activate (&temporary)"), this, &MainWindow::onActivateTemp);
     m_actRename = m_actMenu->addAction(style()->standardIcon(QStyle::SP_FileDialogDetailedView),
                                        QStringLiteral("&Rename…"), this, &MainWindow::onRename);
-    m_actSnapshot = m_actMenu->addAction(style()->standardIcon(QStyle::SP_DialogSaveButton),
-                                         QStringLiteral("Create &snapshot…"), this, &MainWindow::onSnapshot);
     m_actMenu->addSeparator();
     m_actMount = m_actMenu->addAction(style()->standardIcon(QStyle::SP_DriveHDIcon),
                                       QStringLiteral("&Mount…"), this, &MainWindow::onMount);
     m_actUnmount = m_actMenu->addAction(style()->standardIcon(QStyle::SP_MediaStop),
                                         QStringLiteral("&Unmount"), this, &MainWindow::onUnmount);
+    // Snapshots: as mesmas três ações da barra da aba Snapshots.
     m_actMenu->addSeparator();
+    m_actSnapshot = m_actMenu->addAction(style()->standardIcon(QStyle::SP_DialogSaveButton),
+                                         QStringLiteral("Create &snapshot…"), this, &MainWindow::onSnapshot);
     m_actCloneSnapshot = m_actMenu->addAction(style()->standardIcon(QStyle::SP_FileDialogNewFolder),
                                               QStringLiteral("C&lone snapshot…"), this, &MainWindow::onCloneSnapshot);
     m_actDestroySnapshot = m_actMenu->addAction(style()->standardIcon(QStyle::SP_TrashIcon),
@@ -260,8 +261,7 @@ void MainWindow::retranslateUi()
 
 void MainWindow::setupShortcuts()
 {
-    m_actRefresh->setShortcut(QKeySequence(QStringLiteral("F5")));
-    m_actRefresh->setShortcuts({QKeySequence::Refresh, QKeySequence(QStringLiteral("Ctrl+R"))});
+    m_actRefresh->setShortcuts({QKeySequence(QStringLiteral("F5")), QKeySequence(QStringLiteral("Ctrl+R"))});
     m_actCreate->setShortcut(QKeySequence(QStringLiteral("Ctrl+N")));
     m_actActivate->setShortcut(QKeySequence(QStringLiteral("Ctrl+Return")));
     m_actActivateTemp->setShortcut(QKeySequence(QStringLiteral("Ctrl+T")));
@@ -331,7 +331,9 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 
 void MainWindow::setupToolbar()
 {
+    // Ações de snapshot ficam na barra da aba Snapshots, não aqui.
     m_toolbar = addToolBar(I18n::tr("Main"));
+    m_toolbar->setObjectName(QStringLiteral("mainToolbar"));
     m_toolbar->setMovable(false);
     m_toolbar->setIconSize(QSize(22, 22));
     m_toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
@@ -342,7 +344,6 @@ void MainWindow::setupToolbar()
     m_toolbar->addAction(m_actActivate);
     m_toolbar->addAction(m_actActivateTemp);
     m_toolbar->addAction(m_actRename);
-    m_toolbar->addAction(m_actSnapshot);
     m_toolbar->addSeparator();
     m_toolbar->addAction(m_actMount);
     m_toolbar->addAction(m_actUnmount);
