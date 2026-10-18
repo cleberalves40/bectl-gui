@@ -75,6 +75,7 @@ qt-sudo bectl destroy -F nome-do-be
 ## ✨ Funcionalidades
 
 - **Listagem completa**: Lista todos os Boot Environments (`bectl list -H`) com uso de espaço e ponto de montagem.
+- **Ordenação por coluna**: Clique no cabeçalho de Boot Environment, Ativo, Montagem, Espaço ou Criado para ordenar; de novo para inverter e uma terceira vez para voltar à ordem do `bectl`. Espaço é ordenado pelo tamanho real (5M < 10M < 1.2G) e Criado cronologicamente. A ordem escolhida é lembrada. A aba Snapshots também ordena.
 - **Destaque visual**:
   - 🟢 **Verde**: Ativo agora (`N` - Now).
   - 🟡 **Amarelo**: Ativo no próximo boot (`R` - Reboot).

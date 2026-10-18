@@ -11,6 +11,37 @@
 
 #include <memory>
 
+namespace {
+
+// Chave de ordenação, quando o texto não serve: bytes na coluna Espaço
+// ("1.2G" < "10M" como texto) e posição do estado na coluna de ícone.
+constexpr int SortKeyRole = Qt::UserRole + 1;
+
+class SortableItem : public QTableWidgetItem
+{
+public:
+    using QTableWidgetItem::QTableWidgetItem;
+
+    bool operator<(const QTableWidgetItem &other) const override
+    {
+        const QVariant a = data(SortKeyRole);
+        const QVariant b = other.data(SortKeyRole);
+        if (a.isValid() && b.isValid())
+            return a.toLongLong() < b.toLongLong();
+        return QString::localeAwareCompare(text(), other.text()) < 0;
+    }
+};
+
+QTableWidgetItem *spaceItem(const QString &space)
+{
+    auto *item = new SortableItem(space);
+    item->setData(SortKeyRole, bectlSizeToBytes(space));
+    item->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    return item;
+}
+
+} // namespace
+
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -386,6 +417,25 @@ void MainWindow::setupCentral()
     m_table->horizontalHeader()->setStretchLastSection(true);
     m_table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     m_table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    // Clique no cabeçalho: crescente, decrescente e, no terceiro clique, a
+    // ordem do bectl. A escolha é salva com as demais preferências.
+    {
+        QHeaderView *header = m_table->horizontalHeader();
+        header->setSortIndicatorClearable(true);
+        const QSettings settings;
+        const int column = settings.value(QStringLiteral("ui/sortColumn"), -1).toInt();
+        const auto order = static_cast<Qt::SortOrder>(
+            settings.value(QStringLiteral("ui/sortOrder"), int(Qt::AscendingOrder)).toInt());
+        header->setSortIndicator(column >= 0 && column < m_table->columnCount() ? column : -1, order);
+        header->setSortIndicatorShown(true);
+        connect(header, &QHeaderView::sortIndicatorChanged, this, [this](int column, Qt::SortOrder order) {
+            QSettings settings;
+            settings.setValue(QStringLiteral("ui/sortColumn"), column);
+            settings.setValue(QStringLiteral("ui/sortOrder"), int(order));
+            if (column < 0)
+                fillTable(m_list);   // volta à ordem do bectl
+        });
+    }
     m_table->setColumnWidth(2, 70);
     m_table->setColumnWidth(3, 140);
     m_table->setColumnWidth(4, 90);
@@ -431,6 +481,9 @@ void MainWindow::setupCentral()
     m_snapTable->setAlternatingRowColors(true);
     m_snapTable->verticalHeader()->setVisible(false);
     m_snapTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_snapTable->horizontalHeader()->setSortIndicatorClearable(true);
+    m_snapTable->horizontalHeader()->setSortIndicator(-1, Qt::AscendingOrder);
+    m_snapTable->horizontalHeader()->setSortIndicatorShown(true);
     m_snapTable->setHorizontalHeaderLabels({I18n::tr("Snapshot"), I18n::tr("Space"),
                                             I18n::tr("Created")});
     connect(m_snapTable, &QTableWidget::itemSelectionChanged, this, &MainWindow::updateActions);
@@ -548,6 +601,8 @@ void MainWindow::fillTable(const QVector<BootEnvironment> &list)
     // A seleção sobrevive à atualização e ao filtro: senão, depois de cada
     // operação a próxima ação iria para o primeiro BE da lista.
     const QStringList previous = selectedNames();
+    // Sem ordenação durante a inserção; ela é reaplicada no fim.
+    m_table->setSortingEnabled(false);
     m_table->setRowCount(0);
 
     int shown = 0;
@@ -558,7 +613,8 @@ void MainWindow::fillTable(const QVector<BootEnvironment> &list)
         const int row = m_table->rowCount();
         m_table->insertRow(row);
 
-        auto *iconItem = new QTableWidgetItem;
+        auto *iconItem = new SortableItem;
+        iconItem->setData(SortKeyRole, be.isActiveNow() ? 0 : be.isActiveReboot() ? 1 : 2);
         if (be.isActiveNow()) {
             iconItem->setIcon(style()->standardIcon(QStyle::SP_DialogApplyButton));
             iconItem->setToolTip(I18n::tr("Active now (N)"));
@@ -573,7 +629,7 @@ void MainWindow::fillTable(const QVector<BootEnvironment> &list)
         iconItem->setData(Qt::UserRole, be.name);
         m_table->setItem(row, 0, iconItem);
 
-        auto *nameItem = new QTableWidgetItem(be.name);
+        auto *nameItem = new SortableItem(be.name);
         QString okFg, warnFg;
         themeRowColors(m_themeId, &okFg, &warnFg,
                    palette().color(QPalette::Base).lightness() < 128);
@@ -586,13 +642,14 @@ void MainWindow::fillTable(const QVector<BootEnvironment> &list)
             nameItem->setForeground(QColor(warnFg));
         }
         m_table->setItem(row, 1, nameItem);
-        m_table->setItem(row, 2, new QTableWidgetItem(be.active));
-        m_table->setItem(row, 3, new QTableWidgetItem(be.mountpoint));
-        m_table->setItem(row, 4, new QTableWidgetItem(be.space));
-        m_table->setItem(row, 5, new QTableWidgetItem(be.created));
+        m_table->setItem(row, 2, new SortableItem(be.active));
+        m_table->setItem(row, 3, new SortableItem(be.mountpoint));
+        m_table->setItem(row, 4, spaceItem(be.space));
+        m_table->setItem(row, 5, new SortableItem(be.created));   // "AAAA-MM-DD HH:MM"
         ++shown;
     }
 
+    m_table->setSortingEnabled(true);
     m_countLabel->setText(I18n::tr("%1 BE(s)").arg(shown));
     for (int row = 0; row < m_table->rowCount(); ++row) {
         if (previous.contains(m_table->item(row, 0)->data(Qt::UserRole).toString()))
@@ -639,18 +696,18 @@ void MainWindow::onSelectionChanged()
 void MainWindow::fillSnapshots()
 {
     const QString be = selectedSingle();
+    m_snapTable->setSortingEnabled(false);
     m_snapTable->setRowCount(0);
     for (const BeSnapshot &s : m_snapshots) {
         if (!be.isEmpty() && s.environment() != be)
             continue;
         const int row = m_snapTable->rowCount();
         m_snapTable->insertRow(row);
-        m_snapTable->setItem(row, 0, new QTableWidgetItem(s.name));
-        auto *space = new QTableWidgetItem(s.space);
-        space->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        m_snapTable->setItem(row, 1, space);
-        m_snapTable->setItem(row, 2, new QTableWidgetItem(s.created));
+        m_snapTable->setItem(row, 0, new SortableItem(s.name));
+        m_snapTable->setItem(row, 1, spaceItem(s.space));
+        m_snapTable->setItem(row, 2, new SortableItem(s.created));
     }
+    m_snapTable->setSortingEnabled(true);
     m_tabs->setTabText(m_tabs->indexOf(m_snapPage),
                        QStringLiteral("%1 (%2)").arg(I18n::tr("Snapshots")).arg(m_snapTable->rowCount()));
 }

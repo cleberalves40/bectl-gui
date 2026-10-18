@@ -5,6 +5,26 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o projeto usa [versionamento semântico](https://semver.org/lang/pt-BR/),
 com tags no formato `vX.Y.Z`.
 
+## [1.2.0] - 2026-10-18
+
+### Adicionado
+- **Ordenação por coluna**: clicar no cabeçalho de Boot Environment, Ativo,
+  Montagem, Espaço ou Criado ordena a lista; um segundo clique inverte e um
+  terceiro volta à ordem do `bectl`. A coluna do ícone ordena pelo estado (em
+  uso, próximo boot, inativo).
+  - **Espaço** é ordenado pelo tamanho real (`5M` < `10M` < `1.2G`), não como
+    texto; **Criado**, cronologicamente.
+  - A ordem escolhida é salva com as demais preferências e vale nas próximas
+    execuções; a seleção é preservada ao ordenar e ao atualizar.
+  - A tabela da aba **Snapshots** também pode ser ordenada.
+- `bectlSizeToBytes()`, que converte o espaço como o `bectl` o imprime
+  (`humanize_number`: `24K`, `1.69M`, `4.19G`) em bytes.
+- Testes: `tst_validation` +10 (conversão de tamanhos; total 32) e
+  `tst_mainwindow` +5 (ordenação; total 23).
+
+### Alterado
+- A ajuda descreve a ordenação nos três idiomas.
+
 ## [1.1.2] - 2026-10-18
 
 ### Corrigido
@@ -198,6 +218,7 @@ snapshots e port validado. O detalhamento está nas versões abaixo.
 - Temas, tradução (en_US, pt_BR, es_ES), compilação por CMake e QMake, modelo
   de port do FreeBSD e CI no GitHub Actions (Ubuntu e FreeBSD amd64).
 
+[1.2.0]: https://github.com/cleberalves40/bectl-gui/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/cleberalves40/bectl-gui/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/cleberalves40/bectl-gui/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/cleberalves40/bectl-gui/compare/v1.0.0...v1.1.0

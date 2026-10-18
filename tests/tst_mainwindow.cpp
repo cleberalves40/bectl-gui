@@ -12,6 +12,7 @@
 #include <QFile>
 #include <QLabel>
 #include <QComboBox>
+#include <QHeaderView>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QTimer>
@@ -283,6 +284,99 @@ private slots:
         QCOMPARE(selected(), QStringList({QStringLiteral("be-idle")}));
         w.findChild<QLineEdit *>(QStringLiteral("filter"))->setText(QStringLiteral("default"));
         QCOMPARE(selected(), QStringList({QStringLiteral("default")}));   // nada a preservar: primeira linha
+    }
+
+    static QStringList column(QTableWidget *t, int col)
+    {
+        QStringList values;
+        for (int r = 0; r < t->rowCount(); ++r)
+            values << t->item(r, col)->text();
+        return values;
+    }
+
+    // Espaço em bytes, não como texto (como texto, "1.2G" < "10M" < "5M").
+    void sortsBySpaceNumerically()
+    {
+        MainWindow w(nullptr, m_bectl, false);
+        auto *table = w.findChild<QTableWidget *>(QStringLiteral("table"));
+        QTRY_COMPARE_WITH_TIMEOUT(table->rowCount(), 3, 5000);
+        table->horizontalHeader()->setSortIndicator(4, Qt::AscendingOrder);
+        QCOMPARE(column(table, 1), QStringList({QStringLiteral("be-idle"), QStringLiteral("be-mounted"),
+                                                QStringLiteral("default")}));
+        table->horizontalHeader()->setSortIndicator(4, Qt::DescendingOrder);
+        QCOMPARE(column(table, 4), QStringList({QStringLiteral("1.2G"), QStringLiteral("10M"),
+                                                QStringLiteral("5M")}));
+    }
+
+    void sortsByNameDateAndState()
+    {
+        MainWindow w(nullptr, m_bectl, false);
+        auto *table = w.findChild<QTableWidget *>(QStringLiteral("table"));
+        QTRY_COMPARE_WITH_TIMEOUT(table->rowCount(), 3, 5000);
+        table->horizontalHeader()->setSortIndicator(1, Qt::DescendingOrder);
+        QCOMPARE(column(table, 1), QStringList({QStringLiteral("default"), QStringLiteral("be-mounted"),
+                                                QStringLiteral("be-idle")}));
+        table->horizontalHeader()->setSortIndicator(5, Qt::DescendingOrder);   // mais recente primeiro
+        QCOMPARE(column(table, 1), QStringList({QStringLiteral("be-idle"), QStringLiteral("be-mounted"),
+                                                QStringLiteral("default")}));
+        table->horizontalHeader()->setSortIndicator(0, Qt::AscendingOrder);    // BE em uso primeiro
+        QCOMPARE(column(table, 1).first(), QStringLiteral("default"));
+        table->horizontalHeader()->setSortIndicator(3, Qt::AscendingOrder);    // montagem
+        QCOMPARE(column(table, 3), QStringList({QStringLiteral("-"), QStringLiteral("/"),
+                                                QStringLiteral("/mnt/be")}));
+    }
+
+    // A ordem escolhida é salva, vale para a próxima janela, sobrevive à
+    // atualização, e sem ordem a lista volta à ordem do bectl.
+    void sortPersistsAndClears()
+    {
+        {
+            MainWindow w(nullptr, m_bectl, false);
+            auto *table = w.findChild<QTableWidget *>(QStringLiteral("table"));
+            QTRY_COMPARE_WITH_TIMEOUT(table->rowCount(), 3, 5000);
+            // Crescente: diferente da ordem do bectl, para o teste distinguir as duas.
+            table->horizontalHeader()->setSortIndicator(4, Qt::AscendingOrder);
+        }
+        QCOMPARE(QSettings().value(QStringLiteral("ui/sortColumn")).toInt(), 4);
+        QCOMPARE(QSettings().value(QStringLiteral("ui/sortOrder")).toInt(), int(Qt::AscendingOrder));
+
+        MainWindow w(nullptr, m_bectl, false);
+        auto *table = w.findChild<QTableWidget *>(QStringLiteral("table"));
+        QTRY_COMPARE_WITH_TIMEOUT(table->rowCount(), 3, 5000);
+        const QStringList bySpace{QStringLiteral("be-idle"), QStringLiteral("be-mounted"), QStringLiteral("default")};
+        QCOMPARE(column(table, 1), bySpace);
+        action(w, "actRefresh")->trigger();
+        QTRY_VERIFY_WITH_TIMEOUT(action(w, "actRefresh")->isEnabled(), 5000);
+        QCOMPARE(column(table, 1), bySpace);
+
+        table->horizontalHeader()->setSortIndicator(-1, Qt::AscendingOrder);
+        QCOMPARE(column(table, 1), QStringList({QStringLiteral("default"), QStringLiteral("be-mounted"),
+                                                QStringLiteral("be-idle")}));   // ordem do bectl
+        QCOMPARE(QSettings().value(QStringLiteral("ui/sortColumn")).toInt(), -1);
+    }
+
+    void selectionSurvivesSorting()
+    {
+        MainWindow w(nullptr, m_bectl, false);
+        auto *table = w.findChild<QTableWidget *>(QStringLiteral("table"));
+        QTRY_COMPARE_WITH_TIMEOUT(table->rowCount(), 3, 5000);
+        selectRows(table, {1});   // be-mounted
+        table->horizontalHeader()->setSortIndicator(4, Qt::AscendingOrder);
+        const auto rows = table->selectionModel()->selectedRows();
+        QCOMPARE(rows.size(), 1);
+        QCOMPARE(table->item(rows.first().row(), 1)->text(), QStringLiteral("be-mounted"));
+        QVERIFY(action(w, "actUnmount")->isEnabled());
+    }
+
+    void snapshotsSortBySpace()
+    {
+        MainWindow w(nullptr, m_bectl, false);
+        auto *table = w.findChild<QTableWidget *>(QStringLiteral("table"));
+        auto *snaps = w.findChild<QTableWidget *>(QStringLiteral("snapTable"));
+        QTRY_COMPARE_WITH_TIMEOUT(table->rowCount(), 3, 5000);
+        selectRows(table, {0});
+        snaps->horizontalHeader()->setSortIndicator(1, Qt::AscendingOrder);
+        QCOMPARE(column(snaps, 0), QStringList({QStringLiteral("default@depois"), QStringLiteral("default@antes")}));
     }
 
     void preferencesDisabledWhileBusy()

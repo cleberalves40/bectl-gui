@@ -23,6 +23,12 @@ struct BootEnvironment {
 };
 
 /**
+ * Converte o espaço como o bectl o imprime (humanize_number: "24K", "1.69M",
+ * "4.19G") em bytes. Devolve -1 para "-" ou valores não reconhecidos.
+ */
+qint64 bectlSizeToBytes(const QString &size);
+
+/**
  * Snapshot de um Boot Environment, como "bectl list -s" o lista.
  */
 struct BeSnapshot {

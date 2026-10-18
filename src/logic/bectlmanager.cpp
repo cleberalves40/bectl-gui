@@ -162,6 +162,20 @@ QVector<BootEnvironment> BectlManager::listEnvironments(bool scriptFormat, bool 
     return result;
 }
 
+qint64 bectlSizeToBytes(const QString &size)
+{
+    static const QRegularExpression re(QStringLiteral("^([0-9]+(?:\\.[0-9]+)?)([BKMGTPE]?)$"));
+    const QRegularExpressionMatch m = re.match(size.trimmed());
+    if (!m.hasMatch())
+        return -1;
+    static const QString units = QStringLiteral("BKMGTPE");
+    const int exp = m.captured(2).isEmpty() ? 0 : units.indexOf(m.captured(2));
+    double bytes = m.captured(1).toDouble();
+    for (int i = 0; i < exp; ++i)
+        bytes *= 1024.0;
+    return static_cast<qint64>(bytes);
+}
+
 // Com -s, "bectl list -H" imprime cada BE numa linha sem recuo e, com recuo de
 // dois espaços, o dataset do BE e seus snapshots ("pool/ROOT/be@snap"); a
 // origem de um clone aparece com quatro espaços e também contém "@".
