@@ -5,6 +5,28 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o projeto usa [versionamento semântico](https://semver.org/lang/pt-BR/),
 com tags no formato `vX.Y.Z`.
 
+## [1.0.0] - 2026-10-18
+
+Primeira versão estável. Desde a 0.1.0: homologação nas arquiteturas Tier 1 do
+FreeBSD (amd64 e aarch64, releases 14.5 e 15.1), validação de nomes antes de
+chamar o `bectl`, interface que não trava durante as operações, montagem,
+snapshots e port validado. O detalhamento está nas versões abaixo.
+
+### Adicionado
+- CI: os testes rodam também com AddressSanitizer e UBSan no job Ubuntu; erros
+  de memória, vazamentos e comportamento indefinido reprovam o build.
+- `docs/RELEASING.md`: processo de versão e passos para enviar o port à árvore
+  oficial do FreeBSD.
+
+### Alterado
+- Port: `MAINTAINER` passa a ser `cleber@bsd.com.br`, um endereço válido para o
+  projeto de ports.
+- `pkg-descr` descreve as funcionalidades atuais (snapshots, montagem,
+  validação, operações em segundo plano).
+- O diálogo **Atalhos de teclado** é traduzido (en_US, pt_BR, es_ES) e lista
+  todos os atalhos; antes era fixo em inglês.
+- README: estrutura do repositório e componentes atualizados.
+
 ## [0.3.0] - 2026-10-18
 
 ### Adicionado
@@ -108,6 +130,7 @@ com tags no formato `vX.Y.Z`.
 - Temas, tradução (en_US, pt_BR, es_ES), compilação por CMake e QMake, modelo
   de port do FreeBSD e CI no GitHub Actions (Ubuntu e FreeBSD amd64).
 
+[1.0.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/cleberalves40/bectl-gui/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.1.2...v0.2.0

@@ -1,9 +1,9 @@
 PORTNAME=	bectl-gui
 DISTVERSIONPREFIX=	v
-DISTVERSION=	0.3.0
+DISTVERSION=	1.0.0
 CATEGORIES=	sysutils
 
-MAINTAINER=	cleberalves40@github.com
+MAINTAINER=	cleber@bsd.com.br
 COMMENT=	Qt6 graphical front-end for FreeBSD bectl(8)
 WWW=		https://github.com/cleberalves40/bectl-gui
 

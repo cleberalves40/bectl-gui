@@ -1,10 +1,13 @@
-bectl-gui is a fast, lightweight Qt6 graphical user interface for FreeBSD's
-bectl(8) utility, allowing administrators and users to manage ZFS Boot
-Environments.
+bectl-gui is a lightweight Qt6 graphical user interface for FreeBSD's
+bectl(8) utility, for managing ZFS boot environments.
 
 Features:
-- List boot environments with active/reboot flags
-- Create, activate (permanent or temporary), rename and destroy BEs
-- Multiple selection and batch operations
-- Privilege escalation via qt-sudo
-- Built-in theme switcher and internationalization
+- List boot environments with their active, next-boot and temporary flags
+- Create (from the current BE, another BE or a snapshot), activate
+  (permanently or for the next boot only), rename and destroy BEs
+- Create, clone and destroy snapshots
+- Mount and unmount BEs to inspect their files
+- Batch destruction, with the running BE protected
+- Validates names before calling bectl; operations run in the background
+  and privileges are raised only for writes, through qt-sudo
+- Themes and translations (English, Brazilian Portuguese, Spanish)
