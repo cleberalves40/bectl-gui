@@ -5,6 +5,12 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o projeto usa [versionamento semântico](https://semver.org/lang/pt-BR/),
 com tags no formato `vX.Y.Z`.
 
+## [Não lançado]
+
+### Removido
+- `image.png`: captura de tela da v0.1.0, desatualizada; será substituída por
+  uma da versão atual.
+
 ## [1.0.0] - 2026-10-18
 
 Primeira versão estável. Desde a 0.1.0: homologação nas arquiteturas Tier 1 do
@@ -130,6 +136,7 @@ snapshots e port validado. O detalhamento está nas versões abaixo.
 - Temas, tradução (en_US, pt_BR, es_ES), compilação por CMake e QMake, modelo
   de port do FreeBSD e CI no GitHub Actions (Ubuntu e FreeBSD amd64).
 
+[Não lançado]: https://github.com/cleberalves40/bectl-gui/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/cleberalves40/bectl-gui/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/cleberalves40/bectl-gui/compare/v0.2.0...v0.2.1
