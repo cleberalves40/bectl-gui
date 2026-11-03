@@ -1,5 +1,7 @@
 # bectl GUI (C++/Qt6) – Gerenciador de Boot Environments (FreeBSD)
 
+[**Português**](README.md) | [English](README.en.md)
+
 [![Language](https://img.shields.io/badge/Language-C%2B%2B17-blue.svg)](https://en.cppreference.com/w/cpp/17)
 [![Framework](https://img.shields.io/badge/Framework-Qt6-green.svg)](https://www.qt.io/)
 [![Platform](https://img.shields.io/badge/Platform-FreeBSD-red.svg)](https://www.freebsd.org/)

@@ -1,5 +1,7 @@
 # Changelog
 
+[**Português**](CHANGELOG.md) | [English](CHANGELOG.en.md)
+
 Todas as mudanças relevantes do bectl-gui são registradas aqui.
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o projeto usa [versionamento semântico](https://semver.org/lang/pt-BR/),
