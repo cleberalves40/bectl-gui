@@ -1,5 +1,7 @@
 # Arquiteturas suportadas
 
+[**Português**](ARCHITECTURES.md) | [English](ARCHITECTURES.en.md)
+
 O bectl-gui é homologado nas arquiteturas **Tier 1** do FreeBSD, conforme a
 [página de plataformas](https://www.freebsd.org/platforms/) do projeto: **amd64** e
 **aarch64**, nas séries 14.x e 15.x. O i386 deixou de ser suportado no FreeBSD 15, e o
